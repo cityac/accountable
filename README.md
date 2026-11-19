@@ -98,7 +98,11 @@ I'd love to see what you build! Please share it with a pull request to `communit
 
 **Day 2: Deliver as a Team.** A team builds two features at the same time: products and company settings. The lead prepares `main` first, then two developers each build one feature with their own coding agent in their own worktree, and the person who merges brings both together. Follow along with my checkpoints in [course/instructions/week2day2.md](course/instructions/week2day2.md). My build: `git checkout week2day2-end`, then `npm run seed` and `npm run dev`.
 
+**Day 2 optional extra: AWS AI-DLC.** Use Claude Code and AWS's AI-DLC v2 to build Accountable Status, a status page for Accountable. Every step is in its repo: [ed-donner/accountable-status](https://github.com/ed-donner/accountable-status).
+
 **Day 3: Large Codebases, Security, Testing.** A bigger team builds quotes, invoices and bills at the same time, and the integration lead merges them, tracking down a bug along the way. Then the lead makes one Money section while four developers work on the merged code: a review, a refactor, the sample data and a cash flow chart. Follow along with my checkpoints in [course/instructions/week2day3.md](course/instructions/week2day3.md). My build: `git checkout week2day3-end`, then `npm run seed` and `npm run dev`.
+
+**Day 3 optional extra: a large codebase.** Use Claude Code to make a small change to Odoo, a suite of business apps with about 3 million lines of code. Every step is in my fork of Odoo: [ed-donner/ownership](https://github.com/ed-donner/ownership).
 
 **Day 4: Cloud Agents, Software Factory.** A software factory builds the accounting side of Accountable. Each issue starts a coding agent on GitHub's own computers, which takes it through the six stages and opens a pull request. A second agent reviews each one, and the lead merges. The books come first, then profit and loss, a balance sheet, the journal, aged balances, and an invoice made from an accepted quote. Follow along with my checkpoints in [course/instructions/week2day4.md](course/instructions/week2day4.md). My build: `git checkout week2day4-end`, then `npm run seed` and `npm run dev`.
 
