@@ -153,6 +153,14 @@ Accountable has only been run on a Mac. It's built to work the same on Windows a
 
 `npm run check` runs every check on the code, then every test, and ends with a list of what passed. It needs gitleaks, which comes separately: on a Mac, `brew install gitleaks`. `npm run check:quick` leaves out the end-to-end tests, and `npm run format` fixes the formatting.
 
+## Hooks
+
+- **Git pre-commit** (`lefthook.yml`, set up by `npm install`): formats the staged files and stages the result, then runs lint, the type checks and gitleaks on the staged changes. It skips the tests, so a commit takes a few seconds. `LEFTHOOK=0 git commit` skips it in an emergency.
+- **Claude Code, end of turn** (`.claude/hooks/check-on-stop.mjs`): runs `npm run check:quick` and, if it fails, sends the end of the output back to the agent to fix. It does this once per stop, then lets the agent stop, so it can't loop.
+- **Claude Code, `.env`** (`.claude/hooks/protect-env.mjs`): blocks the agent's edits and writes to `.env` and `.env.*` (but not `.env.example`), and any shell command that names them.
+
+The Claude Code hooks run with the Node that Claude Code was started with, so start it from a shell on Node 24 or later.
+
 ## Running the tests
 
 `npm test` runs the type check and every test: backend, frontend and end-to-end. It takes about two minutes on a 10-core Mac, and ends with a short summary. It keeps going if one part fails, names what failed at the end, and exits with an error. A leftover `.only` in a test also counts as a failure, because it would quietly skip other tests. It uses its own temporary databases, so it never touches your data.
