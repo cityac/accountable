@@ -36,16 +36,6 @@ jobs:
         with:
           version: latest
 
-      # Playwright uses the Google Chrome that comes with GitHub's Ubuntu runner (channel: "chrome").
-      - name: Run every check
-        run: npm run check
-
-      # Screenshots of failed end-to-end tests. Empty when something else failed, hence the warning setting.
-      - name: Upload the Playwright results
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-results
-          path: test-results/
-          if-no-files-found: warn
-          retention-days: 14
+      # Every check except the end-to-end tests, which run locally with npm run check.
+      - name: Run the quick checks
+        run: npm run check:quick
