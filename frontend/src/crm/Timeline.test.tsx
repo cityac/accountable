@@ -156,7 +156,8 @@ describe("the timeline", () => {
       await waitFor(() => expect(screen.getAllByTestId("timeline-entry").length).toBeGreaterThan(before));
     }
     expect(screen.getAllByTestId("timeline-entry")).toHaveLength(total);
-  });
+    // Ten pages and 525 rendered entries: about 4s on a laptop, over the 5s default on a CI runner.
+  }, 20_000);
 
   it("keeps what's showing if Show more fails, and can try again", async () => {
     let broken = true;
