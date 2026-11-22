@@ -19,8 +19,7 @@ Done, on the `dark-mode` branch (`docs/changes/dark-mode/`). The moon button at 
 
 - Light mode is unchanged: full-page screenshots of every section, a record page of each kind, a dialog and a chart tooltip matched the ones taken before the change pixel for pixel, apart from the date moving left to make room for the toggle.
 - Every color is a token in `styles.css`, with a light value and a dark one. A layout test fails if a component names a color or uses `dark:`, and `tokens.test.ts` checks every contrast ratio the spec states, in both modes.
-- Dialog backdrops in dark mode are Midnight at 70% rather than black, because black panels behind a black dialog hid its edge.
-- Worth a look from the project owner: black panels on the `#04232E` page are low in contrast (1.29:1), as the brand sets them, and Sea Mist link underlines don't show on Won's Sea Mist column header.
+- Panels and cards in dark mode are navy `#0A3442`, slightly lighter than the `#04232E` page, as the intent asks, rather than the brand skill's black. Dialog backdrops darken to black at 60% so a dialog stands out from the panels behind it, and field errors use a lighter Raspberry, `#FF7A99`, so they stay readable on navy.
 - Screenshots of the dashboard and the pipeline in both modes are in `docs/changes/dark-mode/`.
 
 ## Compared with the chosen mockup

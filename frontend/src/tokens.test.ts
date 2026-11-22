@@ -56,7 +56,7 @@ const PAIRS: [string, string, number][] = [
   ["won-ink", "won", 4.5],
   ["on-strong", "chip-info", 4.5],
   ["on-strong", "chip-alert", 4.5],
-  ["chip-alert", "panel", 4.5],
+  ["alert-text", "panel", 4.5],
   ["cerulean", "panel", 3],
   ["cerulean", "page", 3],
 ];
@@ -64,10 +64,15 @@ const PAIRS: [string, string, number][] = [
 // The spec states this one for dark mode only. Light mode's softer bar is unchanged.
 const DARK_PAIRS: typeof PAIRS = [["bar-soft", "panel", 3]];
 
+function namesIn(block: string) {
+  return [...block.matchAll(/^\s*--([\w-]+):/gm)].map(([, name]) => name);
+}
+
 describe("the color tokens", () => {
-  it("give every dark value a light one", () => {
-    for (const name of Object.keys(colorsIn(blockAfter('[data-mode="dark"]')))) {
-      expect(light, name).toHaveProperty(name);
+  it("give every dark value a light one, including the overlay and shadows", () => {
+    const lightNames = [...namesIn(blockAfter("@theme")), ...namesIn(blockAfter(":root"))];
+    for (const name of namesIn(blockAfter('[data-mode="dark"]'))) {
+      expect(lightNames, name).toContain(name);
     }
   });
 
@@ -104,11 +109,16 @@ describe("the color tokens", () => {
       "on-strong": "#ffffff",
       won: "#073b4c",
       "won-ink": "#cdd8db",
+      "alert-text": "#d23e62",
     });
   });
 
+  it("sit dark panels slightly lighter than the dark page", () => {
+    expect(luminance(dark.panel)).toBeGreaterThan(luminance(dark.page));
+  });
+
   it("use the spec's dark surfaces", () => {
-    expect(dark).toMatchObject({ page: "#04232e", panel: "#000000", ink: "#cdd8db", won: "#cdd8db" });
+    expect(dark).toMatchObject({ page: "#04232e", panel: "#0a3442", ink: "#cdd8db", won: "#cdd8db" });
   });
 });
 

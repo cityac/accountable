@@ -67,8 +67,8 @@ Nothing visible changes in this phase, which is the point: it proves the refacto
 
 - **`ink` does two jobs today.** It's both the text color and the Midnight fill (Won's header and chip, the deals-won bars, the revenue line, dialog backdrops). Flipping `ink` to Sea Mist without splitting it first would turn backdrops pale and put Sea Mist text on Sea Green. Phase 2 splits it before any dark value exists, and the light-mode screenshot diff proves nothing moved.
 - **Inherited text on colored fills.** Sea Green, Marigold and Coral fills that don't set their own text color inherit `ink`, which becomes Sea Mist in dark mode at about 1.4:1. The Phase 3 walk looks for these, and the e2e test checks the computed text color on the current-section pill, a Qualified chip and the Won header.
-- **The brand and the intent disagree on panels.** Intent decision 2 says panels sit slightly lighter than the page. The brand skill makes them black, darker than `#04232E`, and the spec follows the brand (decision 9). If the owner prefers lighter panels, only the dark value of `panel` changes.
-- **Black panels on a dark page are low in contrast** (1.29:1). Panels have no outline by design, so they may read as flat. That's a call for the owner at Phase 5, not something to fix with borders.
+- **The brand and the intent disagree on panels.** Intent decision 2 says panels sit slightly lighter than the page. The brand skill makes them black, darker than `#04232E`. The owner chose the intent at review, so the spec (decision 9) uses navy `#0A3442` panels, with a lighter grid, a black backdrop behind dialogs and a lighter Alert text token for field errors to match.
+- **Navy panels on a dark page are low in contrast** (1.23:1). Panels have no outline by design, so they may read as flat. That's a call for the owner at Phase 5, not something to fix with borders.
 - **Recharts writes some colors as SVG attributes.** `var()` works in Chrome's presentation attributes, which the app already relies on, but any color Recharts computes in JavaScript wouldn't follow the token. The Phase 3 walk checks hover tooltips and the active dot.
 - **A flash of light mode.** If the inline script runs after the first paint, dark-mode users see a white flash on every load. The script sits in `<head>` with no `defer`, and an e2e test checks the attribute before React mounts.
 - **The inline script and `lib/mode.ts` duplicate the key.** A unit test reads `index.html` and checks they match.
@@ -102,7 +102,7 @@ Nothing visible changes in this phase, which is the point: it proves the refacto
 - `e2e/mode.spec.ts`
   - A fresh browser opens in light mode: no `data-mode` attribute, and the page background is `#F0F4F5`.
   - The toggle is in the top bar on all five sections and on a record page.
-  - Clicking it turns the page to `#04232E` and the panels to black, and changes its label to "Switch to light mode".
+  - Clicking it turns the page to `#04232E` and the panels to `#0A3442`, and changes its label to "Switch to light mode".
   - After a reload the app is still dark, and the attribute is already set when the page first draws, before React mounts. Switching back to light and reloading stays light.
   - In dark mode, an open dialog, its backdrop, a picker's list, a chart tooltip and a "Deal saved." message all use the dark tokens.
   - In dark mode, the current-section pill, a Qualified chip and the Won column header have Midnight text, and the Won header is filled in Sea Mist.

@@ -46,7 +46,7 @@ These are the decisions the project owner has made on points that needed one.
 6. **Chrome only for now.** It's the one supported and tested browser. Safari and Firefox may work, but nobody will have checked.
 7. **The project owner checks H9 by hand.** The end-to-end tests prove each of the five answers is within two clicks of the dashboard, and the project owner checks that someone new, with only the sample data and no instructions, can find them.
 8. **In dark mode, Won takes Sea Mist.** A Midnight fill would vanish on the dark page, so wherever Won is filled in Midnight in light mode, such as its column header, its chip, its funnel segment and the deals-won bars, dark mode fills it in Sea Mist `#CDD8DB` with Midnight text. The other five stage colors, the small chip shades and the exceptions in decision 2 are the same in both modes.
-9. **Dark mode uses the brand's dark surfaces.** The page is `#04232E`, a deeper Midnight, and panels and cards are black, as the brand skill sets them. So in dark mode panels sit darker than the page rather than lighter, and they stand apart from it by tone alone, with no outline or shadow, as in light mode.
+9. **Dark mode panels sit slightly lighter than the page.** The page is `#04232E`, a deeper Midnight, and panels and cards are a navy `#0A3442` derived from Midnight, as the project owner chose in the intent. The brand skill makes them black, which would sit darker than the page. Panels stand apart from the page by tone alone, with no outline or shadow, as in light mode.
 
 ### Worth knowing
 
@@ -478,7 +478,7 @@ A timeline merges activities and stage changes in the backend, removes duplicate
 - **Today:** the page can stay open for days, so anything on screen that depends on the date uses `useToday`, which checks the clock every minute and whenever the window is used again. The dashboard reads its figures again when the day changes.
 - **Instant updates:** only the pipeline move and the follow-up tick update the screen before the server replies, and both roll back on failure.
 - **Board figures:** worked out in the browser from the deals list, so they change as a card lands. They use the same formula as the backend, with a unit test on each side using the same cases.
-- **Mode:** the mode is a `data-mode="dark"` attribute on the `<html>` element, absent in light mode. `styles.css` gives each color token its light value, then a second value under that attribute, and nothing else in the app names a color or a mode: components, charts, shadows and Sonner's messages all use the tokens, so they follow the mode without knowing about it. Tailwind's `dark:` variant isn't used, because it would scatter dark colors across components. The choice is stored in the browser's `localStorage` as `accountable-mode`, and anything other than `dark` reads as light. A short script in `index.html` sets the attribute before the page draws, so the app never flashes light before turning dark. Nothing new is installed: the toggle's sun and moon icons come from lucide-react.
+- **Mode:** the mode is a `data-mode="dark"` attribute on the `<html>` element, absent in light mode. `styles.css` gives each color token its light value, then a second value under that attribute, and nothing else in the app names a color or a mode: components, charts, shadows and Sonner's messages all use the tokens, so they follow the mode without knowing about it. Tailwind's `dark:` variant isn't used, because it would scatter dark colors across components. The choice is stored in the browser's `localStorage` as `accountable-mode`, and anything other than `dark` reads as light. A short script in `index.html` sets the attribute before the page draws, so the app never flashes light before turning dark. The dark block also sets `color-scheme: dark`, so the browser's own scrollbars, date pickers and form controls turn dark too. Nothing new is installed: the toggle's sun and moon icons come from lucide-react.
 - **Dragging:** a 6px move starts a drag, so a click still opens the deal. Keyboard dragging comes from dnd-kit's keyboard sensor. Cards are memoized to stay smooth at 500 deals. Columns aren't virtualized, because that conflicts with dropping a card anywhere. Each column is a droppable, and the board has one draggable that's pointed at a card as it's picked up. While a card is dragged, the others slide apart around a pale slot showing where it will land, and the gap closes behind it. `@dnd-kit/sortable` was dropped: its per-card hooks re-render every card each time a drag crosses a card, which took 241ms at 500 deals. The longest task on this board is about 70ms to 180ms, slowest on the first drags after loading.
 
 ## Screens
@@ -559,24 +559,24 @@ Every color in the app is one of these tokens, defined once in `styles.css` with
 | Token | Light | Dark | Use |
 |---|---|---|---|
 | Page | `#F0F4F5` | `#04232E` | Page background, row hover |
-| Panel | `#FFFFFF` | `#000000` | Panels, cards, the top bar, dialogs, pickers, tooltips and messages |
-| Ink | `#073B4C` Midnight | `#CDD8DB` Sea Mist | All body text and headings (dark: 14.44:1 on Panel, 11.24:1 on Page) |
-| Muted ink | `#4A6B76` | `#8FA9B1` | Secondary text (light: 5.74:1 on white, 5.19:1 on Page. Dark: 8.48:1 on Panel, 6.60:1 on Page) |
+| Panel | `#FFFFFF` | `#0A3442` | Panels, cards, the top bar, dialogs, pickers, tooltips and messages (dark: slightly lighter than Page, 1.23:1) |
+| Ink | `#073B4C` Midnight | `#CDD8DB` Sea Mist | All body text and headings (dark: 9.12:1 on Panel, 11.24:1 on Page) |
+| Muted ink | `#4A6B76` | `#8FA9B1` | Secondary text (light: 5.74:1 on white, 5.19:1 on Page. Dark: 5.36:1 on Panel, 6.60:1 on Page) |
 | On color | `#073B4C` Midnight | `#073B4C` Midnight | Text on Sea Green, Marigold, Coral and Sea Mist fills, the same in both modes |
 | Primary | `#06D6A0` Sea Green, Midnight text | The same | Main buttons, current section |
-| Sea Green text | `#047A5B` | `#06D6A0` | If Sea Green is ever needed as text (light: 5.33:1 on white, 4.81:1 on Page. Dark: 11.13:1 on Panel, 8.66:1 on Page) |
-| Marigold text | `#866522` | `#FFC145` | If Marigold is ever needed as text (light: 5.39:1 on white, 4.86:1 on Page. Dark: 12.97:1 on Panel, 10.09:1 on Page) |
-| Information | `#118AB2` Cerulean, white text | The same | Focus rings, stage-change entries, charts (dark: 5.30:1 on Panel, 4.13:1 on Page, above the 3:1 a focus ring needs) |
+| Sea Green text | `#047A5B` | `#06D6A0` | If Sea Green is ever needed as text (light: 5.33:1 on white, 4.81:1 on Page. Dark: 7.03:1 on Panel, 8.66:1 on Page) |
+| Marigold text | `#866522` | `#FFC145` | If Marigold is ever needed as text (light: 5.39:1 on white, 4.86:1 on Page. Dark: 8.19:1 on Panel, 10.09:1 on Page) |
+| Information | `#118AB2` Cerulean, white text | The same | Focus rings, stage-change entries, charts (dark: 3.35:1 on Panel, 4.13:1 on Page, above the 3:1 a focus ring needs) |
 | Alert | `#EF476F` Raspberry, white text | The same | Delete buttons, charts |
 | Small chip, Information | `#107FA4`, white text | The same | Negotiation chips (4.57:1) |
 | Small chip, Alert | `#D23E62`, white text | The same | Late, Overdue and Lost chips (4.56:1) |
+| Alert text | `#D23E62` | `#FF7A99` | Field error messages and the outline of a field with an error (light: 4.56:1 on white. Dark: 5.37:1 on Panel) |
 | Won fill | `#073B4C` Midnight, Sea Mist text | `#CDD8DB` Sea Mist, Midnight text | Won's column header, chip, funnel segment and deals-won bars (8.30:1 either way). See decision 8. |
 | Late tint | `#FDECF1` | `#3A1220` | Late cards (light: Midnight on it is 10.61:1. Dark: Sea Mist 11.22:1, Muted ink 6.59:1) |
-| Grid | `#E4ECEE` | `#173843` | Chart grid lines |
-| Bar, so far | `#839DA5` | `#6E8A93` | The current month's bar, a softer shade of Won fill (dark: 5.72:1 on Panel) |
+| Grid | `#E4ECEE` | `#23525F` | Chart grid lines |
+| Bar, so far | `#839DA5` | `#6E8A93` | The current month's bar, a softer shade of Won fill (dark: 3.61:1 on Panel) |
 | Shadow | Midnight at today's strengths | Black at 60% | The dragged card and dialogs, the only shadows |
-| Overlay | Midnight at 40% | Midnight at 70% | Dialog backdrops. In dark mode it lifts the black panels behind a dialog, so the dialog's edge shows. |
-| Overlay | Midnight at today's strength | Black at 60% | The backdrop behind a dialog |
+| Overlay | Midnight at 40% | Black at 60% | Dialog backdrops. In dark mode it darkens the page and panels behind a dialog, so the lighter navy dialog stands out. |
 
 White text on Cerulean, Raspberry and the two small chip shades stays white in both modes, so the ratios in decision 2 hold in dark mode too. No other text in dark mode falls below 4.5:1, which is the same rule light mode follows.
 
@@ -639,7 +639,7 @@ Numbers are always in JetBrains Mono, so columns of figures line up. Instrument 
 - **Pipeline band:** compact blocks, 76px tall, sized by value with 2px gaps. A small stage keeps a minimum width so its label still fits.
 - **All charts:** one axis per chart, so revenue and deal count are never on the same one. Pale horizontal grid lines only. Direct labels on the current month only, which is usually the highest in the sample data. Text is in ink, never the series color. Each chart has a hover tooltip.
 - **Money on axes:** shortened with the currency, such as `$40k` and `$1.2M`.
-- **In dark mode:** charts take every color from the tokens, so they change with the mode. The revenue line stays Midnight in both modes, because it sits on the Sea Green fill, and the month labels on that fill use On color. The deals-won bars use Won fill, and the current month uses Bar, so far. Text beside the charts, the funnel's values and leader lines, and the axis labels off the fill use Ink and Muted ink. The funnel's percentage pills use the Page color.
+- **In dark mode:** charts take every color from the tokens, so they change with the mode. The revenue line stays Midnight in both modes, because it sits on the Sea Green fill, and the month labels on that fill use On color. The deals-won bars use Won fill, and the current month uses Bar, so far. Text beside the charts, the funnel's values and the axis labels off the fill use Ink and Muted ink. The funnel's dotted leader lines stay Sea Mist in both modes. The funnel's percentage pills use the Page color.
 
 ### Motion
 

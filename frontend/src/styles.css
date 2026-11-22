@@ -25,6 +25,7 @@
   --color-on-strong: #ffffff;
   --color-won: #073b4c;
   --color-won-ink: #cdd8db;
+  --color-alert-text: #d23e62;
   --color-overlay: color-mix(in oklab, #073b4c 40%, transparent);
 
   --font-sans: "Instrument Sans Variable", system-ui, sans-serif;
@@ -68,18 +69,20 @@
 [data-mode="dark"] {
   color-scheme: dark;
   --color-page: #04232e;
-  --color-panel: #000000;
+  --color-panel: #0a3442;
   --color-ink: #cdd8db;
   --color-muted: #8fa9b1;
   --color-sea-green-text: #06d6a0;
   --color-marigold-text: #ffc145;
   --color-late-tint: #3a1220;
-  --color-grid: #173843;
+  --color-grid: #23525f;
   --color-bar-soft: #6e8a93;
   --color-won: #cdd8db;
   --color-won-ink: #073b4c;
-  /* Midnight, not black: it lifts the black panels behind a dialog, so the dialog stands out. */
-  --color-overlay: color-mix(in oklab, #073b4c 70%, transparent);
+  /* The Raspberry chip shade is too dark to read as text on the navy panels. */
+  --color-alert-text: #ff7a99;
+  /* Black, not Midnight: it darkens the page behind a dialog, so the lighter navy dialog stands out. */
+  --color-overlay: color-mix(in oklab, #000000 60%, transparent);
 
   --shadow-lift: 0 10px 28px rgba(0, 0, 0, 0.6);
   --shadow-dialog: 0 12px 40px rgba(0, 0, 0, 0.6);
@@ -247,7 +250,7 @@
   }
 
   .input[aria-invalid="true"] {
-    box-shadow: inset 0 0 0 1.5px var(--color-chip-alert);
+    box-shadow: inset 0 0 0 1.5px var(--color-alert-text);
   }
 
   /* Only during a drag: on landing, cards take their new places without sliding. */

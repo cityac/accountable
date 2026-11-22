@@ -16,7 +16,7 @@ A dark mode with a toggle on every page, across every section.
 - Text in dark mode meets the same contrast rules as spec.md.
 - Charts, dialogs and messages follow the mode too.
 - No new dependencies unless the plan makes the case for one.
-u1 2 3, это что такое?
+
 ## Decisions
 
 Answers from the project owner on points the intent left open.
