@@ -161,7 +161,7 @@ Accountable has only been run on a Mac. It's built to work the same on Windows a
 
 ## Running the checks
 
-`npm run check` runs every check on the code, then every test, and ends with a list of what passed. It needs gitleaks, which comes separately: on a Mac, `brew install gitleaks`. `npm run check:quick` leaves out the end-to-end tests, and `npm run format` fixes the formatting.
+`npm run check` runs every check on the code, then every test, and ends with a list of what passed. It needs gitleaks, which comes separately: on a Mac, `brew install gitleaks`. `npm run check:quick` leaves out the end-to-end tests, and `npm run format` fixes the formatting. On GitHub, CI runs `npm run check` on every push, and when it fails it uploads the screenshots of any failed end-to-end tests from `test-results/` as `playwright-results`. On fewer than 8 cores, such as CI's runner, `npm test` runs the type check, pytest and Vitest one after another rather than side by side, because side by side a Vitest test there ran ten times past its laptop time.
 
 ## Hooks
 

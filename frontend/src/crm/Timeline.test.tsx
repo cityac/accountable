@@ -150,14 +150,16 @@ describe("the timeline", () => {
     }
     show(routes);
     await entryNamed("Activity 50");
-    while (screen.queryByRole("button", { name: "Show more" })) {
+    // Finding the button by role gets slower as the list grows, so each page looks for it once.
+    const showMore = () => screen.queryByRole("button", { name: "Show more" });
+    for (let button = showMore(); button; button = showMore()) {
       const before = screen.getAllByTestId("timeline-entry").length;
-      await user().click(screen.getByRole("button", { name: "Show more" }));
+      await user().click(button);
       await waitFor(() => expect(screen.getAllByTestId("timeline-entry").length).toBeGreaterThan(before));
     }
     expect(screen.getAllByTestId("timeline-entry")).toHaveLength(total);
-    // Ten pages and 525 rendered entries: about 4s on a laptop, over the 5s default on a CI runner.
-  }, 20_000);
+    // Ten pages and 525 rendered entries: about 1.5s on a laptop, and over 20s on CI's runner beside pytest.
+  }, 60_000);
 
   it("keeps what's showing if Show more fails, and can try again", async () => {
     let broken = true;

@@ -28,6 +28,15 @@ export function chooseWorkers({ cores, memoryGb, requested }) {
   return Math.max(1, Math.min(byCores, byMemory, MAX_WORKERS));
 }
 
+// The type check, pytest and Vitest each want several cores. On GitHub's 4-core runner,
+// side by side, a Vitest test that takes 1.5s on a laptop ran past 20s.
+const CORES_FOR_SIDE_BY_SIDE = 8;
+
+/** Whether the quick checks can run at once without starving each other's timeouts. */
+export function quickChecksSideBySide(cores) {
+  return cores >= CORES_FOR_SIDE_BY_SIDE;
+}
+
 /** Everything one Playwright worker has to itself, so workers can run side by side. */
 export function stackFor(index, database) {
   return {
