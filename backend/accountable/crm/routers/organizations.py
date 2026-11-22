@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import delete, func, insert, select, update
 
@@ -34,14 +36,12 @@ def _detail(conn, organization_id: int) -> dict:
     }
 
 
-@router.get("")
-def list_organizations() -> list[schemas.OrganizationRow]:
+@router.get("", response_model=list[schemas.OrganizationRow])
+def list_organizations() -> list[dict[str, Any]]:
     with db.reading() as conn:
         last = timeline.last_by_organization(conn)
         contact_counts = dict(
-            conn.execute(
-                select(contacts.c.organization_id, func.count()).group_by(contacts.c.organization_id)
-            ).all()
+            conn.execute(select(contacts.c.organization_id, func.count()).group_by(contacts.c.organization_id)).all()
         )
         open_deals = {
             row.organization_id: row
@@ -72,21 +72,21 @@ def list_organizations() -> list[schemas.OrganizationRow]:
     return result
 
 
-@router.post("", status_code=201)
-def add_organization(body: schemas.OrganizationCreate) -> schemas.OrganizationDetail:
+@router.post("", status_code=201, response_model=schemas.OrganizationDetail)
+def add_organization(body: schemas.OrganizationCreate) -> dict[str, Any]:
     with db.writing() as conn:
-        new_id = conn.execute(insert(organizations).values(**body.model_dump())).inserted_primary_key[0]
+        new_id = db.inserted_id(conn.execute(insert(organizations).values(**body.model_dump())))
         return _detail(conn, new_id)
 
 
-@router.get("/{organization_id}")
-def get_organization(organization_id: schemas.PathId) -> schemas.OrganizationDetail:
+@router.get("/{organization_id}", response_model=schemas.OrganizationDetail)
+def get_organization(organization_id: schemas.PathId) -> dict[str, Any]:
     with db.reading() as conn:
         return _detail(conn, organization_id)
 
 
-@router.patch("/{organization_id}")
-def edit_organization(organization_id: schemas.PathId, body: schemas.OrganizationUpdate) -> schemas.OrganizationDetail:
+@router.patch("/{organization_id}", response_model=schemas.OrganizationDetail)
+def edit_organization(organization_id: schemas.PathId, body: schemas.OrganizationUpdate) -> dict[str, Any]:
     fields = body.model_dump(exclude_unset=True)
     with db.writing() as conn:
         _get(conn, organization_id)
@@ -102,8 +102,8 @@ def delete_organization(organization_id: schemas.PathId) -> None:
         conn.execute(delete(organizations).where(organizations.c.id == organization_id))
 
 
-@router.get("/{organization_id}/delete-impact")
-def organization_impact(organization_id: schemas.PathId) -> schemas.OrganizationImpact:
+@router.get("/{organization_id}/delete-impact", response_model=schemas.OrganizationImpact)
+def organization_impact(organization_id: schemas.PathId) -> dict[str, Any]:
     with db.reading() as conn:
         _get(conn, organization_id)
         return {
@@ -116,12 +116,12 @@ def organization_impact(organization_id: schemas.PathId) -> schemas.Organization
         }
 
 
-@router.get("/{organization_id}/timeline")
+@router.get("/{organization_id}/timeline", response_model=schemas.Timeline)
 def organization_timeline(
     organization_id: schemas.PathId,
     limit: int = Query(timeline.DEFAULT_LIMIT, ge=1, le=500),
     offset: int = Query(0, ge=0, le=schemas.MAX_ID),
-) -> schemas.Timeline:
+) -> dict[str, Any]:
     with db.reading() as conn:
         _get(conn, organization_id)
         return timeline.for_organization(conn, organization_id, limit, offset)

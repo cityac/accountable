@@ -1,9 +1,10 @@
 """The dashboard's figures and the funnel, all in one reply."""
 
-from datetime import date, datetime
+from collections.abc import Sequence
+from datetime import date
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from sqlalchemy import and_, select
 
 from accountable import db
@@ -25,7 +26,7 @@ def whole_percent(part: int, whole: int) -> int:
 
 def month_series(won: list[Any], today: date) -> list[dict[str, Any]]:
     index = today.year * 12 + today.month - 1
-    months = []
+    months: list[dict[str, Any]] = []
     for back in range(MONTHS - 1, -1, -1):
         year, month = (index - back) // 12, (index - back) % 12 + 1
         months.append({"month": f"{year}-{month:02d}", "label": MONTH_LABELS[month - 1], "revenue": 0, "deals": 0})
@@ -38,7 +39,7 @@ def month_series(won: list[Any], today: date) -> list[dict[str, Any]]:
     return months
 
 
-def funnel(all_deals: list[Any], changes: list[Any]) -> list[dict[str, Any]]:
+def funnel(all_deals: Sequence[Any], changes: Sequence[Any]) -> list[dict[str, Any]]:
     """Value that has reached each stage, from each deal's furthest stage so far.
 
     The history is what counts, so moving back removes nothing. Being lost isn't
@@ -60,7 +61,9 @@ def funnel(all_deals: list[Any], changes: list[Any]) -> list[dict[str, Any]]:
         {
             "stage": stage,
             "value": reached[place],
-            "carried": None if place == 0 or reached[place - 1] == 0 else whole_percent(reached[place], reached[place - 1]),
+            "carried": None
+            if place == 0 or reached[place - 1] == 0
+            else whole_percent(reached[place], reached[place - 1]),
         }
         for place, stage in enumerate(FUNNEL_STAGES)
     ]
@@ -81,7 +84,7 @@ def follow_ups(conn, today: date) -> dict[str, Any]:
         .where(and_(activities.c.follow_up_date.is_not(None), activities.c.follow_up_done.is_(False)))
         .order_by(activities.c.follow_up_date, activities.c.id)
     ).all()
-    items = [
+    items: list[dict[str, Any]] = [
         {
             "id": row.id,
             "description": row.description,
@@ -99,11 +102,11 @@ def follow_ups(conn, today: date) -> dict[str, Any]:
     return {"overdue": overdue, "upcoming": len(items) - overdue, "items": items}
 
 
-@router.get("/dashboard")
+@router.get("/dashboard", response_model=schemas.Dashboard)
 def dashboard(
-    today: date = Depends(db.local_today),
-    now: datetime = Depends(db.utc_now),
-) -> schemas.Dashboard:
+    today: db.Today,
+    now: db.Now,
+) -> dict[str, Any]:
     with db.reading() as conn:
         all_deals = conn.execute(
             select(deals.c.id, deals.c.stage, deals.c.value, deals.c.probability, deals.c.close_date)

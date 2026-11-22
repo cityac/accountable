@@ -1,7 +1,7 @@
-from datetime import date, datetime
+from datetime import date
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import delete, func, select, update
 
 from accountable import db
@@ -51,19 +51,19 @@ def _check_close_date(stage: str, close_date: date | None, today: date) -> None:
         raise schemas.FieldError({"close_date": FUTURE_CLOSE})
 
 
-@router.get("")
-def list_deals() -> list[schemas.Deal]:
+@router.get("", response_model=list[schemas.Deal])
+def list_deals() -> list[dict[str, Any]]:
     with db.reading() as conn:
         rows = conn.execute(_with_names.order_by(deals.c.stage, deals.c.position, deals.c.id)).all()
     return [_reply(row) for row in rows]
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, response_model=schemas.Deal)
 def add_deal(
     body: schemas.DealCreate,
-    today: date = Depends(db.local_today),
-    now: datetime = Depends(db.utc_now),
-) -> schemas.Deal:
+    today: db.Today,
+    now: db.Now,
+) -> dict[str, Any]:
     values = body.model_dump()
     if values["close_date"] is None and values["stage"] in rules.OPEN_STAGES:
         raise schemas.FieldError({"close_date": schemas.FIELD_MESSAGES["close_date"]})
@@ -73,19 +73,19 @@ def add_deal(
         return _reply(_get(conn, rules.add_deal(conn, values, today=today, now=now)))
 
 
-@router.get("/{deal_id}")
-def get_deal(deal_id: schemas.PathId) -> schemas.Deal:
+@router.get("/{deal_id}", response_model=schemas.Deal)
+def get_deal(deal_id: schemas.PathId) -> dict[str, Any]:
     with db.reading() as conn:
         return _reply(_get(conn, deal_id))
 
 
-@router.patch("/{deal_id}")
+@router.patch("/{deal_id}", response_model=schemas.Deal)
 def edit_deal(
     deal_id: schemas.PathId,
     body: schemas.DealUpdate,
-    today: date = Depends(db.local_today),
-    now: datetime = Depends(db.utc_now),
-) -> schemas.Deal:
+    today: db.Today,
+    now: db.Now,
+) -> dict[str, Any]:
     fields = body.model_dump(exclude_unset=True)
     with db.writing() as conn:
         current = _get(conn, deal_id)
@@ -107,13 +107,13 @@ def edit_deal(
         return _reply(_get(conn, deal_id))
 
 
-@router.post("/{deal_id}/move")
+@router.post("/{deal_id}/move", response_model=schemas.MoveResult)
 def move_deal(
     deal_id: schemas.PathId,
     body: schemas.DealMove,
-    today: date = Depends(db.local_today),
-    now: datetime = Depends(db.utc_now),
-) -> schemas.MoveResult:
+    today: db.Today,
+    now: db.Now,
+) -> dict[str, Any]:
     with db.writing() as conn:
         _get(conn, deal_id)
         result = rules.change_stage(conn, deal_id, body.stage, today=today, now=now, to_top=False)
@@ -133,8 +133,8 @@ def delete_deal(deal_id: schemas.PathId) -> None:
         conn.execute(delete(deals).where(deals.c.id == deal_id))
 
 
-@router.get("/{deal_id}/delete-impact")
-def deal_impact(deal_id: schemas.PathId) -> schemas.DealImpact:
+@router.get("/{deal_id}/delete-impact", response_model=schemas.DealImpact)
+def deal_impact(deal_id: schemas.PathId) -> dict[str, Any]:
     with db.reading() as conn:
         row = _get(conn, deal_id)
         return {
@@ -149,12 +149,12 @@ def deal_impact(deal_id: schemas.PathId) -> schemas.DealImpact:
         }
 
 
-@router.get("/{deal_id}/timeline")
+@router.get("/{deal_id}/timeline", response_model=schemas.Timeline)
 def deal_timeline(
     deal_id: schemas.PathId,
     limit: int = Query(timeline.DEFAULT_LIMIT, ge=1, le=500),
     offset: int = Query(0, ge=0, le=schemas.MAX_ID),
-) -> schemas.Timeline:
+) -> dict[str, Any]:
     with db.reading() as conn:
         _get(conn, deal_id)
         return timeline.for_deal(conn, deal_id, limit, offset)

@@ -1,0 +1,8 @@
+# gitleaks' own rules, with one exception.
+[extend]
+useDefault = true
+
+# .env is git-ignored and holds this computer's own keys, so secrets belong there.
+[[allowlists]]
+description = "The git-ignored .env"
+paths = ['''^\.env$''']

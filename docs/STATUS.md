@@ -10,6 +10,7 @@ The MVP is built and its automated tests pass. `docs/spec.md` describes the prod
 - **Phase 6, pipeline:** done. The first board used `@dnd-kit/sortable` and had a 241ms task at the limits, so it now has one draggable and a droppable per column, and slides the cards apart itself. The longest task while dragging into a 240-card column is about 70ms to 180ms, against the project owner's limit of about 250ms. `@dnd-kit/sortable` is gone and the spec says why.
 - **Phase 7, dashboard:** done. It was checked against the mockup at both sizes with sample data, an empty database and data at the limits.
 - **Phase 8, finish the build:** done.
+- **npm run check:** done. Prettier, ESLint, ruff, ty and gitleaks now check every change, along with `npm test`, which fails below 80% unit test coverage. The frontend moved from TypeScript 7 to 6.0.3, because typescript-eslint can't read TypeScript 7 yet. Fixing what the checks found split the long form, table and board functions into smaller ones, and new page tests took frontend coverage from 57% to 84% of lines.
 - **Docs ready for future changes:** done. `docs/spec.md` now describes the whole product and is the authority on it, and each change gets its own `docs/changes/<branch name>/` folder. The MVP's intent and plan moved to `docs/changes/mvp/`.
 
 ## Compared with the chosen mockup
@@ -147,6 +148,10 @@ Everything lives in one file, `data/accountable.db`. Copy that file somewhere sa
 ### Not yet proven
 
 Accountable has only been run on a Mac. It's built to work the same on Windows and Linux, but nobody has tried it there yet. Safari and Firefox may work, but only Chrome is checked.
+
+## Running the checks
+
+`npm run check` runs every check on the code, then every test, and ends with a list of what passed. It needs gitleaks, which comes separately: on a Mac, `brew install gitleaks`. `npm run check:quick` leaves out the end-to-end tests, and `npm run format` fixes the formatting.
 
 ## Running the tests
 

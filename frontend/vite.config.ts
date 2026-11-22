@@ -50,5 +50,13 @@ export default defineConfig({
     restoreMocks: true,
     // A leftover .only would skip the rest of its file and still pass.
     allowOnly: false,
+    // npm test turns this on. The board's dragging is proved end to end, so the
+    // floor is on lines and statements, not on every branch.
+    coverage: {
+      provider: "v8",
+      include: ["src/**"],
+      reporter: ["text-summary"],
+      thresholds: { lines: 80, statements: 80 },
+    },
   },
 });

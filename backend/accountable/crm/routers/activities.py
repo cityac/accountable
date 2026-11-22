@@ -1,6 +1,6 @@
-from datetime import datetime
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from sqlalchemy import delete, insert, select, update
 
 from accountable import db
@@ -17,8 +17,8 @@ def _get(conn, activity_id: int):
     return row
 
 
-@router.post("", status_code=201)
-def add_activity(body: schemas.ActivityCreate, now: datetime = Depends(db.utc_now)) -> schemas.Activity:
+@router.post("", status_code=201, response_model=schemas.Activity)
+def add_activity(body: schemas.ActivityCreate, now: db.Now) -> dict[str, Any]:
     values = body.model_dump()
     if (values["contact_id"] is None) == (values["deal_id"] is None):
         raise schemas.FieldError({"contact_id": "Choose a contact or a deal, not both"})
@@ -28,12 +28,12 @@ def add_activity(body: schemas.ActivityCreate, now: datetime = Depends(db.utc_no
             chosen = values[field]
             if chosen is not None and conn.scalar(select(table.c.id).where(table.c.id == chosen)) is None:
                 raise schemas.FieldError({field: "That record no longer exists"})
-        new_id = conn.execute(insert(activities).values(**values)).inserted_primary_key[0]
+        new_id = db.inserted_id(conn.execute(insert(activities).values(**values)))
         return _get(conn, new_id)._mapping
 
 
-@router.patch("/{activity_id}")
-def edit_activity(activity_id: schemas.PathId, body: schemas.ActivityUpdate) -> schemas.Activity:
+@router.patch("/{activity_id}", response_model=schemas.Activity)
+def edit_activity(activity_id: schemas.PathId, body: schemas.ActivityUpdate) -> dict[str, Any]:
     fields = body.model_dump(exclude_unset=True)
     with db.writing() as conn:
         _get(conn, activity_id)

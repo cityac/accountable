@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ColumnElement, Connection, Select, func, literal, or_, select, union_all
+from sqlalchemy import ColumnElement, CompoundSelect, Connection, func, literal, or_, select, union_all
 
 from accountable.crm.rules import STAGE_NAMES
 from accountable.crm.tables import activities, contacts, deals, stage_changes
@@ -17,7 +17,7 @@ activities_with_names = activities.outerjoin(contacts, activities.c.contact_id =
 )
 
 
-def _merged(activity_scope: ColumnElement[bool], change_scope: ColumnElement[bool]) -> Select:
+def _merged(activity_scope: ColumnElement[bool], change_scope: ColumnElement[bool]) -> CompoundSelect:
     from_activities = (
         select(
             literal("activity").label("kind"),
@@ -89,7 +89,7 @@ def _as_date(value: Any) -> Any:
     return value[:10] if isinstance(value, str) else value
 
 
-def _page(conn: Connection, merged: Select, limit: int, offset: int) -> dict[str, Any]:
+def _page(conn: Connection, merged: CompoundSelect, limit: int, offset: int) -> dict[str, Any]:
     everything = merged.subquery()
     total = conn.scalar(select(func.count()).select_from(everything))
     # The kind and id keep the order stable when entries share a time, so a page
@@ -190,5 +190,3 @@ def last_by_organization(conn: Connection) -> dict[int, datetime]:
     for deal_id, organization_id in conn.execute(select(deals.c.id, deals.c.organization_id)):
         note(organization_id, deal_last.get(deal_id))
     return newest
-
-

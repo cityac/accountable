@@ -14,10 +14,12 @@ Read only the folder for the current change, the one named after the branch you'
 
 Update `docs/STATUS.md` when you finish a piece of work
 
-## Testing
+## Checks and testing
 
-Run `npm test` from the project root before calling any work finished, and fix failures until it passes.
+Run `npm run check` from the project root before calling any work finished, and fix failures until it passes. Fix what a rule finds rather than weakening or switching off the rule, and if a rule doesn't suit the project, ask first.
 
-It runs the type check, the backend unit tests (pytest), the frontend unit tests (Vitest) and the end-to-end tests (Playwright), ends with a summary, and exits with an error if any of them failed. It takes about two minutes on 10 cores, and uses its own temporary databases. It picks the number of end-to-end workers from the machine's cores and memory. `ACCOUNTABLE_TEST_WORKERS=2 npm test` sets it by hand.
+It runs gitleaks over this branch's history and the files on disk, Prettier and ESLint for the frontend, ruff format, ruff check and ty for the backend, then `npm test`, which fails below 80% unit test coverage. It ends with a summary and exits with an error if any of them failed. Functions have a maximum cyclomatic complexity of 15. `npm run check:quick` does the same without the end-to-end tests, for a quicker loop while working, and `npm run format` fixes the formatting. gitleaks has to be installed separately, such as with `brew install gitleaks`.
+
+`npm test` runs the type check, the backend unit tests (pytest), the frontend unit tests (Vitest) and the end-to-end tests (Playwright), ends with a summary, and exits with an error if any of them failed. It takes about two minutes on 10 cores, and uses its own temporary databases. It picks the number of end-to-end workers from the machine's cores and memory. `ACCOUNTABLE_TEST_WORKERS=2 npm test` sets it by hand.
 
 Pytest and Playwright refuse to start on their own, because `npm test` is what sets up those databases.

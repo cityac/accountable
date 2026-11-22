@@ -171,7 +171,7 @@ def test_all_times_carry_a_z(api, make):
 
     for entry in entries(api, f"/api/deals/{deal}"):
         assert entry["at"].endswith("Z")
-        assert datetime.fromisoformat(entry["at"].replace("Z", "+00:00")).utcoffset() == timedelta(0)
+        assert datetime.fromisoformat(entry["at"]).utcoffset() == timedelta(0)
 
 
 @pytest.mark.parametrize("kind", ["deals", "contacts", "organizations"])

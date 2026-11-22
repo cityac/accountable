@@ -98,6 +98,27 @@ function dropPoint(slots: Slot[], y: number): { beforeId: number | null; place: 
   return { beforeId: slots[low]?.id ?? null, place: low };
 }
 
+/** Measured once per column per drag, then kept for the rest of it. */
+function cachedSlots(cache: Map<Stage, Slot[]>, stage: Stage, list: HTMLDivElement, dealId: number): Slot[] {
+  let measured = cache.get(stage);
+  if (!measured) {
+    measured = measureColumn(list, dealId);
+    cache.set(stage, measured);
+  }
+  return measured;
+}
+
+/** The deal below this one in its column, or null at the bottom. */
+function nextDealId(column: Deal[], dealId: number): number | null {
+  return column[column.findIndex((deal) => deal.id === dealId) + 1]?.id ?? null;
+}
+
+/** One place up or down from the card now above the drop point. */
+function steppedPlace(measured: Slot[], beforeId: number | null, down: boolean): number {
+  const place = beforeId === null ? measured.length : measured.findIndex((slot) => slot.id === beforeId);
+  return Math.max(0, Math.min(measured.length, place + (down ? 1 : -1)));
+}
+
 type ColumnsProps = {
   columns: Record<Stage, Deal[]>;
   today: string;
@@ -130,28 +151,39 @@ function Columns({
   const [armedId, setArmedId] = useState<number | null>(null);
   const { listeners, setNodeRef } = useDraggable({ id: armedId ?? NO_DEAL, disabled: armedId === null });
   const listenersRef = useRef(listeners);
-  listenersRef.current = listeners;
+  // flushSync in arm() commits before the listeners are read, layout effects included.
+  useLayoutEffect(() => {
+    listenersRef.current = listeners;
+  });
 
-  function arm(target: EventTarget): boolean {
-    const card = (target as HTMLElement).closest<HTMLElement>("[data-deal-id]");
-    if (!card) return false;
-    flushSync(() => setArmedId(Number(card.dataset.dealId)));
-    setNodeRef(card);
-    return true;
-  }
+  // Kept stable, so handing them to every card doesn't redraw the memoized cards.
+  const arm = useCallback(
+    (card: HTMLElement) => {
+      flushSync(() => setArmedId(Number(card.dataset.dealId)));
+      setNodeRef(card);
+    },
+    [setNodeRef],
+  );
 
-  function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
-    if (arm(event.target)) listenersRef.current?.onPointerDown?.(event);
-  }
+  const handlePointerDown = useCallback(
+    (event: PointerEvent<HTMLElement>) => {
+      arm(event.currentTarget);
+      listenersRef.current?.onPointerDown?.(event);
+    },
+    [arm],
+  );
 
-  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (KEYBOARD_CODES.start.includes(event.code) && arm(event.target)) listenersRef.current?.onKeyDown?.(event);
-  }
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLElement>) => {
+      if (!KEYBOARD_CODES.start.includes(event.code)) return;
+      arm(event.currentTarget);
+      listenersRef.current?.onKeyDown?.(event);
+    },
+    [arm],
+  );
 
   return (
     <div
-      onPointerDown={handlePointerDown}
-      onKeyDown={handleKeyDown}
       data-dragging={draggingId !== null}
       className="grid min-h-0 flex-1 grid-cols-[repeat(6,minmax(0,1fr))] gap-2 px-5 pb-4"
     >
@@ -167,6 +199,8 @@ function Columns({
           step={draggingStage === stage || drop?.stage === stage ? step : 0}
           onAdd={onAdd}
           listRef={listRef}
+          onCardPointerDown={handlePointerDown}
+          onCardKeyDown={handleKeyDown}
         />
       ))}
     </div>
@@ -198,7 +232,9 @@ export function Board({ deals, today, onMove, onAdd }: Props) {
   }, []);
 
   const columnsRef = useRef(columns);
-  columnsRef.current = columns;
+  useLayoutEffect(() => {
+    columnsRef.current = columns;
+  });
 
   /**
    * Up and down step between the places in a column, rather than by a fixed
@@ -224,20 +260,9 @@ export function Board({ deals, today, onMove, onAdd }: Props) {
     const list = stage ? lists.current.get(stage) : undefined;
     if (!stage || !list) return undefined;
 
-    let measured = slots.current.get(stage);
-    if (!measured) {
-      measured = measureColumn(list, dealId);
-      slots.current.set(stage, measured);
-    }
-
-    const current = dropRef.current;
-    const nextId = () => {
-      const column = columnsRef.current[stage];
-      return column[column.findIndex((deal) => deal.id === dealId) + 1]?.id ?? null;
-    };
-    const beforeId = current ? current.beforeId : nextId();
-    const place = beforeId === null ? measured.length : measured.findIndex((slot) => slot.id === beforeId);
-    const target = Math.max(0, Math.min(measured.length, place + (event.code === "ArrowDown" ? 1 : -1)));
+    const measured = cachedSlots(slots.current, stage, list, dealId);
+    const beforeId = dropRef.current ? dropRef.current.beforeId : nextDealId(columnsRef.current[stage], dealId);
+    const target = steppedPlace(measured, beforeId, event.code === "ArrowDown");
 
     const middle = collisionRect.top + collisionRect.height / 2;
     const now = middle - list.getBoundingClientRect().top + list.scrollTop;
@@ -254,12 +279,25 @@ export function Board({ deals, today, onMove, onAdd }: Props) {
     }),
   );
 
-  function setDropState(next: Drop | null) {
+  const setDropState = useCallback((next: Drop | null) => {
     const current = dropRef.current;
     if (current?.stage === next?.stage && current?.beforeId === next?.beforeId) return;
     dropRef.current = next;
     setDrop(next);
-  }
+  }, []);
+
+  const finish = useCallback(() => {
+    setDraggingId(null);
+    setDropState(null);
+    slots.current.clear();
+  }, [setDropState]);
+
+  const settle = useCallback(() => {
+    if (settleTimer.current === null) return;
+    clearTimeout(settleTimer.current);
+    settleTimer.current = null;
+    finish();
+  }, [finish]);
 
   function handleDragStart({ active }: DragStartEvent) {
     settle();
@@ -273,30 +311,13 @@ export function Board({ deals, today, onMove, onAdd }: Props) {
     if (!over || !list || !rect) return null;
     setStep(rect.height + CARD_GAP);
     const stage = over.id as Stage;
-    let measured = slots.current.get(stage);
-    if (!measured) {
-      measured = measureColumn(list, active.id as number);
-      slots.current.set(stage, measured);
-    }
+    const measured = cachedSlots(slots.current, stage, list, active.id as number);
     const y = rect.top + rect.height / 2 - list.getBoundingClientRect().top + list.scrollTop;
     return { stage, ...dropPoint(measured, y) };
   }
 
   function handleDragMove(event: DragMoveEvent) {
     setDropState(findDrop(event));
-  }
-
-  function finish() {
-    setDraggingId(null);
-    setDropState(null);
-    slots.current.clear();
-  }
-
-  function settle() {
-    if (settleTimer.current === null) return;
-    clearTimeout(settleTimer.current);
-    settleTimer.current = null;
-    finish();
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -307,9 +328,7 @@ export function Board({ deals, today, onMove, onAdd }: Props) {
     const deal = deals.find((item) => item.id === dealId);
     if (!target || !deal) return finish();
 
-    const column = columns[deal.stage];
-    const next = column[column.findIndex((item) => item.id === dealId) + 1]?.id ?? null;
-    if (deal.stage === target.stage && next === target.beforeId) return finish();
+    if (deal.stage === target.stage && nextDealId(columns[deal.stage], dealId) === target.beforeId) return finish();
 
     // The gap stays open until the new order arrives, a tick later. Closing it now
     // would show the card back in its old place for a frame.
@@ -318,7 +337,8 @@ export function Board({ deals, today, onMove, onAdd }: Props) {
     setLandedId(dealId);
   }
 
-  useLayoutEffect(settle, [deals]);
+  // A new order of deals means the move has landed.
+  useLayoutEffect(settle, [deals, settle]);
 
   useEffect(() => {
     if (landedId === null) return;
@@ -339,7 +359,8 @@ export function Board({ deals, today, onMove, onAdd }: Props) {
       onDragCancel={finish}
     >
       <p id="board-instructions" className="sr-only">
-        Press Space to pick up a deal, use the arrow keys to move it, and press Space to drop it. Press Enter to open it.
+        Press Space to pick up a deal, use the arrow keys to move it, and press Space to drop it. Press Enter to open
+        it.
       </p>
       <Columns
         columns={columns}
@@ -353,9 +374,7 @@ export function Board({ deals, today, onMove, onAdd }: Props) {
         onAdd={onAdd}
         listRef={listRef}
       />
-      <DragOverlay dropAnimation={null}>
-        {activeDeal && <DealCardLifted deal={activeDeal} today={today} />}
-      </DragOverlay>
+      <DragOverlay dropAnimation={null}>{activeDeal && <DealCardLifted deal={activeDeal} today={today} />}</DragOverlay>
     </DndContext>
   );
 }

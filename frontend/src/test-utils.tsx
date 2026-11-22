@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { vi } from "vitest";
 
 import { queryDefaults } from "./App";
@@ -22,7 +22,7 @@ export const META = {
 
 export type Call = { method: string; path: string; body: unknown };
 
-type Handler = (body: any) => { status?: number; body: unknown };
+type Handler = (body: Record<string, unknown>) => { status?: number; body: unknown };
 
 /** Stands in for the backend. Keys are "METHOD /path". Returns the calls made. */
 export function mockApi(routes: Record<string, unknown | Handler>): Call[] {
@@ -49,11 +49,21 @@ export function mockApi(routes: Record<string, unknown | Handler>): Call[] {
   return calls;
 }
 
-export function renderApp(ui: ReactNode) {
+/** Renders with a fresh cache. Give a route, such as "/deals/:id", to open ui at an address. */
+export function renderApp(ui: ReactNode, { at = "/", route }: { at?: string; route?: string } = {}) {
   const client = new QueryClient({ defaultOptions: queryDefaults });
   const view = render(
     <QueryClientProvider client={client}>
-      <MemoryRouter>{ui}</MemoryRouter>
+      <MemoryRouter initialEntries={[at]}>
+        {route ? (
+          <Routes>
+            <Route path={route} element={ui} />
+            <Route path="*" element={<p>Somewhere else</p>} />
+          </Routes>
+        ) : (
+          ui
+        )}
+      </MemoryRouter>
     </QueryClientProvider>,
   );
   return { ...view, client };
