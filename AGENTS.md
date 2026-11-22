@@ -15,6 +15,8 @@ Read only the folder for the current change, the one named after the branch you'
 
 Update `docs/STATUS.md` when you finish a piece of work
 
+Before calling a build finished, go through every row of the plan's "Files that change" table and check the diff does what it says. Say in `docs/STATUS.md` why any row wasn't done. When the change touches `docs/spec.md`, read each section it touches from top to bottom, so no old line still disagrees with a new one.
+
 ## Checks and testing
 
 Run `npm run check` from the project root before calling any work finished, and fix failures until it passes. Fix what a rule finds rather than weakening or switching off the rule, and if a rule doesn't suit the project, ask first.

@@ -21,6 +21,7 @@ Done, on the `dark-mode` branch (`docs/changes/dark-mode/`). The moon button at 
 - Every color is a token in `styles.css`, with a light value and a dark one. A layout test fails if a component names a color or uses `dark:`, and `tokens.test.ts` checks every contrast ratio the spec states, in both modes.
 - Panels and cards in dark mode are navy `#0A3442`, slightly lighter than the `#04232E` page, as the intent asks, rather than the brand skill's black. Dialog backdrops darken to black at 60% so a dialog stands out from the panels behind it, and field errors use a lighter Raspberry, `#FF7A99`, so they stay readable on navy.
 - Screenshots of the dashboard and the pipeline in both modes are in `docs/changes/dark-mode/`.
+- Harness, after the review: `tokens.test.ts` now fails if the spec's color token table lists a token twice or gives a value `styles.css` doesn't have. AGENTS.md and `docs/REVIEW.md` now say to check the plan's file table row by row, and to check that the spec doesn't disagree with itself. `docs/IMPROVE.md` keeps a watch list of mistakes seen once.
 
 ## Compared with the chosen mockup
 
@@ -97,7 +98,7 @@ A third review of the `mvp` branch against `main` using `docs/REVIEW.md` found t
 ### Important
 
 1. **"Today" froze in an open tab.** The top bar's date and the Late and Overdue chips read the clock once while drawing. A tab left open overnight kept yesterday's date until a full reload, and a deal due yesterday didn't show as late on the Pipeline. Reproduced in Chrome by moving the clock past midnight. (T8, P6) Fixed: `lib/useToday.ts` checks the clock every minute and whenever the window is used again, because timers stop while a laptop sleeps. The dashboard reads its figures again when the day changes, because the backend works them out for one day. The 16 new tests were also run against the code before the fix, and all but the one guarding against needless reads fail there.
-2. **The fixes from the first two reviews aren't committed.** `frontend/vite.config.ts` at the last commit has neither `cors: false` nor `fs.allow`, and the `0002` migration isn't tracked, so merging the branch as committed would bring those problems back. Still open: the plan leaves commits to the project owner, and this has to happen before the merge.
+2. **The fixes from the first two reviews aren't committed.** `frontend/vite.config.ts` at the last commit has neither `cors: false` nor `fs.allow`, and the `0002` migration isn't tracked, so merging the branch as committed would bring those problems back. Fixed: both are committed, and are on `fork-main`.
 
 ### Nits
 

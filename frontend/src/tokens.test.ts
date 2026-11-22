@@ -128,3 +128,59 @@ describe("the script that sets the mode before the page draws", () => {
     expect(html).toContain(`localStorage.getItem("${MODE_KEY}")`);
   });
 });
+
+// The spec's token table names each token by its use. Shadow and Overlay hold no single color.
+const SPEC_NAMES: Record<string, string> = {
+  Page: "page",
+  Panel: "panel",
+  Ink: "ink",
+  "Muted ink": "muted",
+  "On color": "on-color",
+  Primary: "sea-green",
+  "Sea Green text": "sea-green-text",
+  "Marigold text": "marigold-text",
+  Information: "cerulean",
+  Alert: "raspberry",
+  "Small chip, Information": "chip-info",
+  "Small chip, Alert": "chip-alert",
+  "Alert text": "alert-text",
+  "Won fill": "won",
+  "Late tint": "late-tint",
+  Grid: "grid",
+  "Bar, so far": "bar-soft",
+};
+const WITHOUT_ONE_COLOR = ["Shadow", "Overlay"];
+
+function specTokenRows() {
+  const spec = readFileSync(path.join(SOURCE, "..", "..", "docs", "spec.md"), "utf8");
+  const table = spec.slice(spec.indexOf("### Color tokens"), spec.indexOf("### Stage, chip and chart colors"));
+  return table
+    .split("\n")
+    .filter((line) => line.startsWith("| ") && !line.startsWith("| Token") && !line.startsWith("|---"))
+    .map((line) => line.split("|").map((cell) => cell.trim()))
+    .map(([, name, lightCell, darkCell]) => {
+      const hex = (cell: string) => cell.match(/#[0-9a-f]{6}/i)?.[0].toLowerCase();
+      return { name, light: hex(lightCell), dark: darkCell === "The same" ? hex(lightCell) : hex(darkCell) };
+    });
+}
+
+describe("the spec's color token table", () => {
+  const rows = specTokenRows();
+
+  it("names each token once, and only tokens styles.css has", () => {
+    const names = rows.map((row) => row.name);
+    expect(new Set(names).size, "a token is listed twice").toBe(names.length);
+    for (const name of names) {
+      expect([...Object.keys(SPEC_NAMES), ...WITHOUT_ONE_COLOR], name).toContain(name);
+    }
+  });
+
+  it("gives the same light and dark values as styles.css", () => {
+    for (const { name, light: specLight, dark: specDark } of rows) {
+      const token = SPEC_NAMES[name];
+      if (!token) continue;
+      expect(specLight, `${name} in light mode`).toBe(light[token]);
+      expect(specDark, `${name} in dark mode`).toBe(dark[token]);
+    }
+  });
+});
