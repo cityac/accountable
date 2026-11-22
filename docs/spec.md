@@ -22,7 +22,8 @@ It has five sections, Dashboard, Organizations, Contacts, Deals and Pipeline, ov
 
 - Sign-in, user accounts, several people sharing the same data, or a record of who did what
 - Making it available beyond the computer it runs on
-- A dark mode or a layout for phones
+- A layout for phones
+- Following the device's own dark mode setting
 - AI features
 - Email, calendar or phone integrations
 - Currencies other than US dollars
@@ -44,12 +45,14 @@ These are the decisions the project owner has made on points that needed one.
 5. **Windows and Linux stay untested for now.** The same command is meant to work on Mac, Linux and Windows (C1). The build avoids anything platform-specific, but it has only been run on a Mac, so the other two are unproven until someone tries them.
 6. **Chrome only for now.** It's the one supported and tested browser. Safari and Firefox may work, but nobody will have checked.
 7. **The project owner checks H9 by hand.** The end-to-end tests prove each of the five answers is within two clicks of the dashboard, and the project owner checks that someone new, with only the sample data and no instructions, can find them.
+8. **In dark mode, Won takes Sea Mist.** A Midnight fill would vanish on the dark page, so wherever Won is filled in Midnight in light mode, such as its column header, its chip, its funnel segment and the deals-won bars, dark mode fills it in Sea Mist `#CDD8DB` with Midnight text. The other five stage colors, the small chip shades and the exceptions in decision 2 are the same in both modes.
+9. **Dark mode uses the brand's dark surfaces.** The page is `#04232E`, a deeper Midnight, and panels and cards are black, as the brand skill sets them. So in dark mode panels sit darker than the page rather than lighter, and they stand apart from it by tone alone, with no outline or shadow, as in light mode.
 
 ### Worth knowing
 
-8. **The fonts come from npm packages, not Google Fonts.** The brand skill says Google Fonts. The packages hold the same fonts, so they look the same and work offline.
-9. **The stable drag-and-drop package has gone quiet.** `@dnd-kit/core` was last released in December 2024, though it's still by far the most used, at about 40 million downloads a week. Its successor, `@dnd-kit/react`, is active but still at 0.5.3. This spec uses the stable package, whose React range covers React 19.
-10. **The Won and Lost columns only get longer.** One could reach hundreds of cards. Every deal stays on the board, each column scrolls by itself, and a test drags cards at the 500-deal limit.
+10. **The fonts come from npm packages, not Google Fonts.** The brand skill says Google Fonts. The packages hold the same fonts, so they look the same and work offline.
+11. **The stable drag-and-drop package has gone quiet.** `@dnd-kit/core` was last released in December 2024, though it's still by far the most used, at about 40 million downloads a week. Its successor, `@dnd-kit/react`, is active but still at 0.5.3. This spec uses the stable package, whose React range covers React 19.
+12. **The Won and Lost columns only get longer.** One could reach hundreds of cards. Every deal stays on the board, each column scrolls by itself, and a test drags cards at the 500-deal limit.
 
 ### Smaller calls
 
@@ -77,6 +80,7 @@ Smaller points decided while building. Say if you want any of these changed.
 - The dashboard's won figures link to Deals showing Won deals only. Deals has no stage filter of its own, so this one only shows after following those links, with a button to show every stage.
 - Moving between open stages in the deal form leaves the close date alone, including one that's just been typed. A trip through Won or Lost and back restores it.
 - Leaving the When box untouched keeps an activity's exact time. The box only holds minutes.
+- The chosen mode is remembered by the browser, not the database. With one person on one computer, that's the same thing, and a mode isn't business data.
 
 ---
 
@@ -102,10 +106,12 @@ The [Not in Accountable yet](#not-in-accountable-yet) list applies throughout.
 
 - **N1.** A top bar on every screen links to the five sections: Dashboard, Organizations, Contacts, Deals and Pipeline. The app opens on the Dashboard.
 - **N2.** Every section and record has its own address, so refresh, back and forward all work.
-- **N3.** The app is designed for light mode at 1280px wide and up. There's no phone layout.
+- **N3.** The app is designed for light and dark mode at 1280px wide and up. There's no phone layout.
 - **N4.** Opening a record that no longer exists shows "This deal no longer exists" (or the matching word) with a link back to its section. So does an address that couldn't be a record, such as `/deals/abc`. An unknown address shows "This page no longer exists" with a link to the Dashboard, and keeps the top bar.
 - **N5.** If the backend can't be reached, the app says so and says to check that Accountable is still running. It never shows a blank screen.
 - **N6.** If a screen's data can't be read for any other reason, the screen says so and offers Try again. What's already showing stays, and a failed read never shows figures or an empty list as if they were real.
+- **N7.** A button in the top bar switches between light and dark mode, on every screen. The whole app follows straight away, including charts, dialogs, pickers, tooltips and messages, with no reload and nothing lost from a half-filled form.
+- **N8.** The app opens in light mode until dark mode is chosen. The choice is remembered after a refresh and a restart, and the app opens straight into it, with no flash of the other mode. If the browser can't store it, the button still works until the page is closed.
 
 ## Tables
 
@@ -314,9 +320,9 @@ backend/accountable/
     routers/                      meta, organizations, contacts, deals, activities, dashboard
 backend/tests/
 frontend/src/
-  main.tsx, App.tsx, styles.css
-  lib/                            fetch client, money and date formatting
-  components/                     Shell, DataTable, RecordPicker, ConfirmDelete, LoadFailed, Chip and others
+  main.tsx, App.tsx, styles.css   styles.css holds every color token, for both modes
+  lib/                            fetch client, money and date formatting, the mode setting
+  components/                     Shell, ModeToggle, DataTable, RecordPicker, ConfirmDelete, LoadFailed, Chip and others
   crm/
     queries.ts, deals.ts, Timeline.tsx
     forms/                        organization, contact, deal and activity forms
@@ -472,13 +478,14 @@ A timeline merges activities and stage changes in the backend, removes duplicate
 - **Today:** the page can stay open for days, so anything on screen that depends on the date uses `useToday`, which checks the clock every minute and whenever the window is used again. The dashboard reads its figures again when the day changes.
 - **Instant updates:** only the pipeline move and the follow-up tick update the screen before the server replies, and both roll back on failure.
 - **Board figures:** worked out in the browser from the deals list, so they change as a card lands. They use the same formula as the backend, with a unit test on each side using the same cases.
+- **Mode:** the mode is a `data-mode="dark"` attribute on the `<html>` element, absent in light mode. `styles.css` gives each color token its light value, then a second value under that attribute, and nothing else in the app names a color or a mode: components, charts, shadows and Sonner's messages all use the tokens, so they follow the mode without knowing about it. Tailwind's `dark:` variant isn't used, because it would scatter dark colors across components. The choice is stored in the browser's `localStorage` as `accountable-mode`, and anything other than `dark` reads as light. A short script in `index.html` sets the attribute before the page draws, so the app never flashes light before turning dark. Nothing new is installed: the toggle's sun and moon icons come from lucide-react.
 - **Dragging:** a 6px move starts a drag, so a click still opens the deal. Keyboard dragging comes from dnd-kit's keyboard sensor. Cards are memoized to stay smooth at 500 deals. Columns aren't virtualized, because that conflicts with dropping a card anywhere. Each column is a droppable, and the board has one draggable that's pointed at a card as it's picked up. While a card is dragged, the others slide apart around a pale slot showing where it will land, and the gap closes behind it. `@dnd-kit/sortable` was dropped: its per-card hooks re-render every card each time a drag crosses a card, which took 241ms at 500 deals. The longest task on this board is about 70ms to 180ms, slowest on the first drags after loading.
 
 ## Screens
 
 ### Shell
 
-A white rounded bar across the top holds the Accountable wordmark, set in Instrument Sans, then the five sections with icons and labels, and today's date at the far right. The current section is a Sea Green pill with Midnight text. The bar floats on the page background with space around it, so there's no line across the top of the page. There's no logo yet: `assets/accountable.jpg` is the course illustration.
+A rounded bar in the Panel color across the top holds the Accountable wordmark, set in Instrument Sans, then the five sections with icons and labels, then today's date and the mode toggle at the far right. The toggle is an icon button: a moon in light mode, to switch to dark, and a sun in dark mode, to switch back. Its label for screen readers says what it does, "Switch to dark mode" or "Switch to light mode", and it shows the same words as the browser's tooltip. The current section is a Sea Green pill with Midnight text. The bar floats on the page background with space around it, so there's no line across the top of the page. There's no logo yet: `assets/accountable.jpg` is the course illustration.
 
 ### Dashboard
 
@@ -511,11 +518,11 @@ In this narrow column, a follow-up shows its action and a link to its contact or
 
 ### Tables
 
-A page title with the Add button beside it, then the search box, then the table on a white panel. Rows are separated by space and a hover tint, not lines. Row height is 44px. Edit and Delete are icon buttons at the end of each row, always visible, with labels for screen readers.
+A page title with the Add button beside it, then the search box, then the table on a panel. Rows are separated by space and a hover tint, not lines. Row height is 44px. Edit and Delete are icon buttons at the end of each row, always visible, with labels for screen readers.
 
 ### Record pages
 
-Two columns of white panels on the page background. The left, narrower one holds the details, plus the linked contacts and deals. The right one holds the timeline, as the main thing on the page, with Log activity at its top. Each timeline entry has a round colored icon showing its type.
+Two columns of panels on the page background. The left, narrower one holds the details, plus the linked contacts and deals. The right one holds the timeline, as the main thing on the page, with Log activity at its top. Each timeline entry has a round colored icon showing its type.
 
 ### Pipeline
 
@@ -539,7 +546,7 @@ Pipeline                      Open pipeline $1,240,000   Expected revenue $369,5
 
 Each column is headed by a solid block in its stage color, using the text color from the stage table. The block holds the stage name and deal count, the total value, the expected revenue for open stages, and Add deal. It stays put while the cards below it scroll, and the page header stays put too.
 
-Cards are white on the page background and lead with their value, so the money is the first thing read down a column. A dragged card lifts with a soft shadow, the only shadow besides dialogs. Card text is cut off with an ellipsis if it doesn't fit, with the full text in the browser's own tooltip, because a component on each of 500 cards would slow dragging.
+Cards are in the Panel color on the page background and lead with their value, so the money is the first thing read down a column. A dragged card lifts with a soft shadow, the only shadow besides dialogs. Card text is cut off with an ellipsis if it doesn't fit, with the full text in the browser's own tooltip, because a component on each of 500 cards would slow dragging.
 
 ## Visual design
 
@@ -547,20 +554,29 @@ The brand skill is the source for all of this.
 
 ### Color tokens
 
-| Token | Value | Use |
-|---|---|---|
-| Page | `#F0F4F5` | Page background, row hover |
-| Panel | `#FFFFFF` | Panels and cards |
-| Ink | `#073B4C` Midnight | All body text and headings |
-| Muted ink | `#4A6B76` | Secondary text (5.74:1 on white, 5.19:1 on Page) |
-| Primary | `#06D6A0` Sea Green, Midnight text | Main buttons, current section |
-| Sea Green text | `#047A5B` | If Sea Green is ever needed as text (5.33:1 on white, 4.81:1 on Page) |
-| Marigold text | `#866522` | If Marigold is ever needed as text (5.39:1 on white, 4.86:1 on Page) |
-| Information | `#118AB2` Cerulean, white text | Focus rings, stage-change entries, charts |
-| Alert | `#EF476F` Raspberry, white text | Delete buttons, charts |
-| Small chip, Information | `#107FA4`, white text | Negotiation chips (4.57:1) |
-| Small chip, Alert | `#D23E62`, white text | Late, Overdue and Lost chips (4.56:1) |
-| Late tint | `#FDECF1` | Late cards (Midnight text on it is 10.61:1) |
+Every color in the app is one of these tokens, defined once in `styles.css` with a value for each mode. Light mode is the default, and its values are the ones the app has always had.
+
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| Page | `#F0F4F5` | `#04232E` | Page background, row hover |
+| Panel | `#FFFFFF` | `#000000` | Panels, cards, the top bar, dialogs, pickers, tooltips and messages |
+| Ink | `#073B4C` Midnight | `#CDD8DB` Sea Mist | All body text and headings (dark: 14.44:1 on Panel, 11.24:1 on Page) |
+| Muted ink | `#4A6B76` | `#8FA9B1` | Secondary text (light: 5.74:1 on white, 5.19:1 on Page. Dark: 8.48:1 on Panel, 6.60:1 on Page) |
+| On color | `#073B4C` Midnight | `#073B4C` Midnight | Text on Sea Green, Marigold, Coral and Sea Mist fills, the same in both modes |
+| Primary | `#06D6A0` Sea Green, Midnight text | The same | Main buttons, current section |
+| Sea Green text | `#047A5B` | `#06D6A0` | If Sea Green is ever needed as text (light: 5.33:1 on white, 4.81:1 on Page. Dark: 11.13:1 on Panel, 8.66:1 on Page) |
+| Marigold text | `#866522` | `#FFC145` | If Marigold is ever needed as text (light: 5.39:1 on white, 4.86:1 on Page. Dark: 12.97:1 on Panel, 10.09:1 on Page) |
+| Information | `#118AB2` Cerulean, white text | The same | Focus rings, stage-change entries, charts (dark: 5.30:1 on Panel, 4.13:1 on Page, above the 3:1 a focus ring needs) |
+| Alert | `#EF476F` Raspberry, white text | The same | Delete buttons, charts |
+| Small chip, Information | `#107FA4`, white text | The same | Negotiation chips (4.57:1) |
+| Small chip, Alert | `#D23E62`, white text | The same | Late, Overdue and Lost chips (4.56:1) |
+| Won fill | `#073B4C` Midnight, Sea Mist text | `#CDD8DB` Sea Mist, Midnight text | Won's column header, chip, funnel segment and deals-won bars (8.30:1 either way). See decision 8. |
+| Late tint | `#FDECF1` | `#3A1220` | Late cards (light: Midnight on it is 10.61:1. Dark: Sea Mist 11.22:1, Muted ink 6.59:1) |
+| Grid | `#E4ECEE` | `#173843` | Chart grid lines |
+| Bar, so far | `#839DA5` | `#6E8A93` | The current month's bar, a softer shade of Won fill (dark: 5.72:1 on Panel) |
+| Shadow | Midnight at today's strengths | Black at 60% | The dragged card and dialogs, the only shadows |
+
+White text on Cerulean, Raspberry and the two small chip shades stays white in both modes, so the ratios in decision 2 hold in dark mode too. No other text in dark mode falls below 4.5:1, which is the same rule light mode follows.
 
 ### Stage, chip and chart colors
 
@@ -570,10 +586,10 @@ The brand skill is the source for all of this.
 | Qualified | Marigold `#FFC145` | Midnight |
 | Proposal | Coral `#F78C6B` | Midnight |
 | Negotiation | Cerulean `#118AB2` | White |
-| Won | Midnight `#073B4C` | Sea Mist `#CDD8DB` |
+| Won | Midnight `#073B4C`, Sea Mist `#CDD8DB` in dark mode | Sea Mist, Midnight in dark mode |
 | Lost | Raspberry `#EF476F` | White |
 
-A stage keeps its color everywhere. Negotiation and Lost chips use the small chip shades above, and larger fills, such as the pipeline band, the funnel and the pipeline's column headers, use the colors in this table. Other sets of three follow the brand's trio:
+A stage keeps its color everywhere, and in both modes, apart from Won (decision 8). Negotiation and Lost chips use the small chip shades above, and larger fills, such as the pipeline band, the funnel and the pipeline's column headers, use the colors in this table. Other sets of three follow the brand's trio:
 
 | Set | Sea Green | Marigold | Coral |
 |---|---|---|---|
@@ -606,7 +622,7 @@ Numbers are always in JetBrains Mono, so columns of figures line up. Instrument 
 ### Shapes
 
 - Panels have a 16px radius, cards 10px, inputs and buttons 8px, and chips are fully round.
-- Panels are white on the page background, with no outline and no shadow.
+- Panels are in the Panel color on the page background, with no outline and no shadow, in both modes.
 - There are no gradient fills, and no borders on one edge of a panel. There's no line across the top of the page.
 - Late cards are marked by the chip and tint, never a colored edge.
 - Pipeline columns are headed by a solid block in the stage color, never a colored bar or edge.
@@ -614,13 +630,14 @@ Numbers are always in JetBrains Mono, so columns of figures line up. Instrument 
 
 ### Charts
 
-- **Line chart:** a 2px Midnight line over a solid Sea Green area that runs to the panel's left, right and bottom edges. Won is Midnight, and the fill brings in the brand's primary color without losing the line. The money axis sits inside the panel on the right, and the month labels sit on the fill. The revenue figure sits at the top left on a white backing, so grid lines don't run through it.
+- **Line chart:** a 2px Midnight line over a solid Sea Green area that runs to the panel's left, right and bottom edges. Won is Midnight, and the fill brings in the brand's primary color without losing the line. The money axis sits inside the panel on the right, and the month labels sit on the fill. The revenue figure sits at the top left on a backing in the Panel color, so grid lines don't run through it.
 - **Line's current month:** the last segment is dashed, so an unfinished month doesn't look like a fall in sales.
 - **Bar chart:** thin Midnight bars with 4px rounded tops. The current month is a lighter tint of the same color, labeled "so far".
 - **Sales funnel:** stacked segments narrowing from top to bottom, in stage colors, with 2px gaps and softly rounded corners. The top edge of each segment is as wide as the value that reached it, and the last segment tapers a little further so the shape ends in a neat spout. Each stage name sits inside its segment in the stage's text color. Its full value sits to the right in ink, joined by a dotted leader line. The percentage carried forward sits in a pale pill level with the join between two stages, because it describes the step between them. Build it with Recharts' `FunnelChart` and a custom `shape`.
 - **Pipeline band:** compact blocks, 76px tall, sized by value with 2px gaps. A small stage keeps a minimum width so its label still fits.
 - **All charts:** one axis per chart, so revenue and deal count are never on the same one. Pale horizontal grid lines only. Direct labels on the current month only, which is usually the highest in the sample data. Text is in ink, never the series color. Each chart has a hover tooltip.
 - **Money on axes:** shortened with the currency, such as `$40k` and `$1.2M`.
+- **In dark mode:** charts take every color from the tokens, so they change with the mode. The revenue line stays Midnight in both modes, because it sits on the Sea Green fill, and the month labels on that fill use On color. The deals-won bars use Won fill, and the current month uses Bar, so far. Text beside the charts, the funnel's values and leader lines, and the axis labels off the fill use Ink and Muted ink. The funnel's percentage pills use the Page color.
 
 ### Motion
 
@@ -654,6 +671,8 @@ The project owner compared three mockups and chose:
 - **A new top-down sales funnel** in place of Mockup 2's funnel bars, in the style common in sales CRMs.
 
 `docs/mockups/4-chosen-design.html` brings these together, with `4-chosen-design-dashboard.png` and `4-chosen-design-pipeline.png` beside it. The app matches it, and any change to the look is compared with it. Mockups 1 to 3 stay in the folder as a record of the options, and aren't a reference for the app.
+
+The mockups are all light. Dark mode has no mockup of its own: it keeps the chosen design's layout and shapes, and its colors come from the brand skill's dark surfaces and the tokens above.
 
 The figures in the mockups come from `docs/mockups/shared.js` and are examples. The app's sample data follows M1 to M5.
 
@@ -732,9 +751,10 @@ There's no sign-in, so the app relies on being reachable only from this computer
 | Five answers, two clicks | H9 | `e2e/problem.spec.ts`, then see decision 7 |
 | Real use | Everything | By hand, below |
 | Layout, console, keyboard, Chrome | N3, Q2, Q3, Q4 | `e2e/quality.spec.ts` |
+| Light and dark mode | N7, N8 | `e2e/mode.spec.ts`: the toggle switches the whole app, light is the default, and the choice survives a reload |
 | Speed at the limits | Q1 | `e2e/stress.spec.ts` |
 | Keeping data on this computer | Security | `e2e/security.spec.ts`, `backend/tests/test_every_route.py`, `backend/tests/test_security.py` |
 | When things go wrong | N4, N6, F10, F11, D1, P4 | `e2e/failures.spec.ts`, `frontend/src/crm/forms/forms.test.tsx`, `frontend/src/crm/queries.test.tsx` |
 | Layout rules | Layout rules | `backend/tests/test_layout.py`, `frontend/src/layout.test.ts` |
 
-**By hand:** before a change is called done, the coding agent uses every section and action it touches in a real browser at 1440 by 900 and 1280 by 720, the way a salesperson would. That includes an emptied database, a restart, and starting the app with the network off. It looks at each screen, compares it with the chosen mockup, checks the browser's console has no errors, and fixes what it finds. Then the project owner uses it and has the final say, including on how it looks. Passing tests is necessary, but it isn't enough.
+**By hand:** before a change is called done, the coding agent uses every section and action it touches in a real browser at 1440 by 900 and 1280 by 720, the way a salesperson would. That includes an emptied database, a restart, and starting the app with the network off. It looks at each screen in both modes, compares it with the chosen mockup, checks the browser's console has no errors, and fixes what it finds. Then the project owner uses it and has the final say, including on how it looks. Passing tests is necessary, but it isn't enough.
