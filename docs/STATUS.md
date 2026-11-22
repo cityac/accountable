@@ -13,6 +13,16 @@ The MVP is built and its automated tests pass. `docs/spec.md` describes the prod
 - **npm run check:** done. Prettier, ESLint, ruff, ty and gitleaks now check every change, along with `npm test`, which fails below 80% unit test coverage. The frontend moved from TypeScript 7 to 6.0.3, because typescript-eslint can't read TypeScript 7 yet. Fixing what the checks found split the long form, table and board functions into smaller ones, and new page tests took frontend coverage from 57% to 84% of lines.
 - **Docs ready for future changes:** done. `docs/spec.md` now describes the whole product and is the authority on it, and each change gets its own `docs/changes/<branch name>/` folder. The MVP's intent and plan moved to `docs/changes/mvp/`.
 
+## Dark mode
+
+Done, on the `dark-mode` branch (`docs/changes/dark-mode/`). The moon button at the far right of the top bar switches the whole app to dark, and the sun switches it back. The browser remembers the choice, and the app opens straight into it after a refresh or a restart.
+
+- Light mode is unchanged: full-page screenshots of every section, a record page of each kind, a dialog and a chart tooltip matched the ones taken before the change pixel for pixel, apart from the date moving left to make room for the toggle.
+- Every color is a token in `styles.css`, with a light value and a dark one. A layout test fails if a component names a color or uses `dark:`, and `tokens.test.ts` checks every contrast ratio the spec states, in both modes.
+- Panels and cards in dark mode are navy `#0A3442`, slightly lighter than the `#04232E` page, as the intent asks, rather than the brand skill's black. Dialog backdrops darken to black at 60% so a dialog stands out from the panels behind it, and field errors use a lighter Raspberry, `#FF7A99`, so they stay readable on navy.
+- Screenshots of the dashboard and the pipeline in both modes are in `docs/changes/dark-mode/`.
+- Harness, after the review: `tokens.test.ts` now fails if the spec's color token table lists a token twice or gives a value `styles.css` doesn't have. AGENTS.md and `docs/REVIEW.md` now say to check the plan's file table row by row, and to check that the spec doesn't disagree with itself. `docs/IMPROVE.md` keeps a watch list of mistakes seen once.
+
 ## Compared with the chosen mockup
 
 The app was compared with `docs/mockups/4-chosen-design.html` using Playwright, at 1440 by 900 and 1280 by 720, with the sample data seeded for the mockup's date of Oct 31, 2026. The Pipeline matches the mockup exactly. The Dashboard's layout, figures and charts match to within a pixel, and its Recent activity list holds different entries, because the mockup's are examples. Organizations, Contacts and Deals aren't in the mockup, and use the same shell, colors and type.
@@ -88,7 +98,7 @@ A third review of the `mvp` branch against `main` using `docs/REVIEW.md` found t
 ### Important
 
 1. **"Today" froze in an open tab.** The top bar's date and the Late and Overdue chips read the clock once while drawing. A tab left open overnight kept yesterday's date until a full reload, and a deal due yesterday didn't show as late on the Pipeline. Reproduced in Chrome by moving the clock past midnight. (T8, P6) Fixed: `lib/useToday.ts` checks the clock every minute and whenever the window is used again, because timers stop while a laptop sleeps. The dashboard reads its figures again when the day changes, because the backend works them out for one day. The 16 new tests were also run against the code before the fix, and all but the one guarding against needless reads fail there.
-2. **The fixes from the first two reviews aren't committed.** `frontend/vite.config.ts` at the last commit has neither `cors: false` nor `fs.allow`, and the `0002` migration isn't tracked, so merging the branch as committed would bring those problems back. Still open: the plan leaves commits to the project owner, and this has to happen before the merge.
+2. **The fixes from the first two reviews aren't committed.** `frontend/vite.config.ts` at the last commit has neither `cors: false` nor `fs.allow`, and the `0002` migration isn't tracked, so merging the branch as committed would bring those problems back. Fixed: both are committed, and are on `fork-main`.
 
 ### Nits
 
@@ -151,7 +161,7 @@ Accountable has only been run on a Mac. It's built to work the same on Windows a
 
 ## Running the checks
 
-`npm run check` runs every check on the code, then every test, and ends with a list of what passed. It needs gitleaks, which comes separately: on a Mac, `brew install gitleaks`. `npm run check:quick` leaves out the end-to-end tests, and `npm run format` fixes the formatting.
+`npm run check` runs every check on the code, then every test, and ends with a list of what passed. It needs gitleaks, which comes separately: on a Mac, `brew install gitleaks`. `npm run check:quick` leaves out the end-to-end tests, and `npm run format` fixes the formatting. On GitHub, CI runs `npm run check` on every push, and when it fails it uploads the screenshots of any failed end-to-end tests from `test-results/` as `playwright-results`. On fewer than 8 cores, such as CI's runner, `npm test` runs the type check, pytest and Vitest one after another rather than side by side, because side by side a Vitest test there ran ten times past its laptop time.
 
 ## Hooks
 

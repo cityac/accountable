@@ -18,6 +18,12 @@ if (!fromData.startsWith("..") && !path.isAbsolute(fromData)) {
   throw new Error(`Refusing to run against ${database}: that's where real data lives.`);
 }
 
+// On CI, failure screenshots go where the workflow uploads them. Locally they stay
+// in the temporary folder, so two runs at once can't clear each other's.
+const results = process.env.CI
+  ? path.join(root, "test-results")
+  : path.join(path.dirname(database), "playwright-results");
+
 export default defineConfig({
   testDir: "e2e",
   testMatch: "*.spec.ts",
@@ -27,11 +33,11 @@ export default defineConfig({
   retries: 0,
   timeout: 30_000,
   reporter: [["list"], ["json", { outputFile: process.env.ACCOUNTABLE_E2E_REPORT }]],
-  outputDir: path.join(path.dirname(database), "playwright-results"),
   projects: [
-    { name: "main", testIgnore: "stress.spec.ts" },
+    // One folder each, because each run clears its own: the speed run would wipe the main run's failures.
+    { name: "main", testIgnore: "stress.spec.ts", outputDir: path.join(results, "main") },
     // Timings only mean something on a quiet machine, so scripts/test.mjs runs these last and alone.
-    { name: "speed", testMatch: "stress.spec.ts", fullyParallel: false },
+    { name: "speed", testMatch: "stress.spec.ts", fullyParallel: false, outputDir: path.join(results, "speed") },
   ],
   use: {
     channel: "chrome",

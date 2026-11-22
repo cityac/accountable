@@ -13,10 +13,10 @@ import { EditActivity, LogActivity } from "./forms/ActivityForm";
 import { useTickFollowUp, useTimeline, type About, type RecordKind, type TimelineEntry } from "./queries";
 
 const TYPE_STYLES = {
-  call: { label: "Call", fill: "bg-sea-green text-ink" },
-  email: { label: "Email", fill: "bg-marigold text-ink" },
-  note: { label: "Note", fill: "bg-coral text-ink" },
-  stage: { label: "Stage change", fill: "bg-cerulean text-white" },
+  call: { label: "Call", fill: "bg-sea-green text-on-color" },
+  email: { label: "Email", fill: "bg-marigold text-on-color" },
+  note: { label: "Note", fill: "bg-coral text-on-color" },
+  stage: { label: "Stage change", fill: "bg-cerulean text-on-strong" },
 };
 
 export function EntryIcon({ entry }: { entry: Pick<TimelineEntry, "type"> }) {

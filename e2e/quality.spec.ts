@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { APIRequestContext, Page } from "@playwright/test";
 
 import { expect, test } from "./fixtures";
 import { addActivity, addLinkedDeal, card, column, dropAtEnd, isoDay, resetToSampleData } from "./helpers";
@@ -6,6 +6,13 @@ import { addActivity, addLinkedDeal, card, column, dropAtEnd, isoDay, resetToSam
 test.beforeAll(resetToSampleData);
 
 const SECTIONS = ["/", "/organizations", "/contacts", "/deals", "/pipeline"];
+const MODES = ["light", "dark"] as const;
+
+/** Opens every page of this test in the given mode, as a browser that had chosen it would. */
+async function useMode(page: Page, mode: (typeof MODES)[number]) {
+  if (mode === "dark") await page.addInitScript(() => localStorage.setItem("accountable-mode", "dark"));
+}
+
 const SIZES = [
   { width: 1280, height: 720 },
   { width: 1440, height: 900 },
@@ -32,8 +39,15 @@ for (const size of SIZES) {
   });
 }
 
-test("a walk through every screen and main action logs no console errors", async ({ page, request }) => {
-  const { deal, contact, organization } = await addLinkedDeal(request, "Walked");
+for (const mode of MODES) {
+  test(`a walk through every screen and main action logs no console errors in ${mode} mode`, async ({ page, request }) => {
+    await useMode(page, mode);
+    await walkEveryScreen(page, request, `Walked ${mode}`);
+  });
+}
+
+async function walkEveryScreen(page: Page, request: APIRequestContext, name: string) {
+  const { deal, contact, organization } = await addLinkedDeal(request, name);
   for (const path of SECTIONS) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");
@@ -55,11 +69,11 @@ test("a walk through every screen and main action logs no console errors", async
   await expect(page.getByTestId("timeline-entry").first()).toContainText("Walked through it");
 
   await page.goto("/pipeline");
-  await expect(card(page, "Walked")).toBeVisible();
-  await dropAtEnd(page, "Walked", "lost");
-  await expect(column(page, "lost").locator('[data-deal="Walked"]')).toBeVisible();
+  await expect(card(page, name)).toBeVisible();
+  await dropAtEnd(page, name, "lost");
+  await expect(column(page, "lost").locator(`[data-deal="${name}"]`)).toBeVisible();
   await page.waitForLoadState("networkidle");
-});
+}
 
 async function tabThrough(page: Page, presses: number) {
   const reached = new Set<string>();
@@ -81,11 +95,19 @@ async function tabThrough(page: Page, presses: number) {
   return reached;
 }
 
-test("every control can be reached by Tab and shows a focus ring", async ({ page }) => {
+for (const mode of MODES) {
+  test(`every control can be reached by Tab and shows a focus ring in ${mode} mode`, async ({ page }) => {
+    await useMode(page, mode);
+    await tabThroughEveryScreen(page, mode === "dark" ? "Switch to light mode" : "Switch to dark mode");
+  });
+}
+
+async function tabThroughEveryScreen(page: Page, toggleLabel: string) {
   await page.goto("/organizations");
   await expect(page.locator("tbody tr").first()).toBeVisible();
-  const table = await tabThrough(page, 18);
-  for (const name of ["A Dashboard", "A Deals", "BUTTON Add organization", "INPUT Search organizations", "BUTTON Name"]) {
+  const table = await tabThrough(page, 19);
+  const expected = ["A Dashboard", "A Deals", `BUTTON ${toggleLabel}`, "BUTTON Add organization", "INPUT Search organizations"];
+  for (const name of [...expected, "BUTTON Name"]) {
     expect([...table], name).toContain(name);
   }
   expect([...table].some((name) => name.startsWith("BUTTON Edit "))).toBe(true);
@@ -93,16 +115,16 @@ test("every control can be reached by Tab and shows a focus ring", async ({ page
 
   await page.goto("/");
   await expect(page.getByTestId("follow-up").first()).toBeVisible();
-  const dashboard = await tabThrough(page, 16);
+  const dashboard = await tabThrough(page, 17);
   expect([...dashboard].some((name) => name.startsWith("INPUT Mark "))).toBe(true);
   expect([...dashboard]).toContain("A Open the pipeline");
 
   await page.goto("/pipeline");
   await expect(page.locator("[data-deal]").first()).toBeVisible();
-  const board = await tabThrough(page, 10);
+  const board = await tabThrough(page, 11);
   expect([...board].some((name) => name.startsWith("BUTTON Add deal to "))).toBe(true);
   expect([...board].some((name) => name.startsWith("A $"))).toBe(true);
-});
+}
 
 /** Opens the dashboard from another screen and records the revenue line on every frame while it mounts. */
 async function lineFrames(page: Page) {

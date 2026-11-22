@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-/* Values from docs/mockups/shared.css and the spec's color tokens. */
+/* Every color in the app lives here: light values in @theme, dark values under
+   [data-mode="dark"]. Values from docs/mockups/shared.css and the spec's color tokens. */
 @theme {
   --color-page: #f0f4f5;
   --color-panel: #ffffff;
@@ -19,6 +20,13 @@
   --color-late-tint: #fdecf1;
   --color-grid: #e4ecee;
   --color-bar-soft: #839da5;
+  --color-midnight: #073b4c;
+  --color-on-color: #073b4c;
+  --color-on-strong: #ffffff;
+  --color-won: #073b4c;
+  --color-won-ink: #cdd8db;
+  --color-alert-text: #d23e62;
+  --color-overlay: color-mix(in oklab, #073b4c 40%, transparent);
 
   --font-sans: "Instrument Sans Variable", system-ui, sans-serif;
   --font-serif: "Instrument Serif", Georgia, serif;
@@ -48,6 +56,46 @@
       transform: scale(1);
     }
   }
+}
+
+:root {
+  /* Outside @theme, so utilities read them at run time and they follow the mode. */
+  --shadow-lift: 0 10px 28px rgba(7, 59, 76, 0.22);
+  --shadow-dialog: 0 12px 40px rgba(7, 59, 76, 0.24);
+  --shadow-picker: 0 8px 28px rgba(7, 59, 76, 0.2);
+  --shadow-tooltip: 0 6px 20px rgba(7, 59, 76, 0.18);
+}
+
+[data-mode="dark"] {
+  color-scheme: dark;
+  --color-page: #04232e;
+  --color-panel: #0a3442;
+  --color-ink: #cdd8db;
+  --color-muted: #8fa9b1;
+  --color-sea-green-text: #06d6a0;
+  --color-marigold-text: #ffc145;
+  --color-late-tint: #3a1220;
+  --color-grid: #23525f;
+  --color-bar-soft: #6e8a93;
+  --color-won: #cdd8db;
+  --color-won-ink: #073b4c;
+  /* The Raspberry chip shade is too dark to read as text on the navy panels. */
+  --color-alert-text: #ff7a99;
+  /* Black, not Midnight: it darkens the page behind a dialog, so the lighter navy dialog stands out. */
+  --color-overlay: color-mix(in oklab, #000000 60%, transparent);
+
+  --shadow-lift: 0 10px 28px rgba(0, 0, 0, 0.6);
+  --shadow-dialog: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --shadow-picker: 0 8px 28px rgba(0, 0, 0, 0.6);
+  --shadow-tooltip: 0 6px 20px rgba(0, 0, 0, 0.6);
+}
+
+/* Sonner's messages take the tokens, so they follow the mode. Sonner sets its own
+   under [data-sonner-theme], so this needs to be more specific than that. */
+:root [data-sonner-toaster][data-sonner-theme] {
+  --normal-bg: var(--color-panel);
+  --normal-text: var(--color-ink);
+  --normal-border: var(--color-grid);
 }
 
 @layer base {
@@ -151,7 +199,7 @@
 
   .btn-primary {
     background: var(--color-sea-green);
-    color: var(--color-ink);
+    color: var(--color-on-color);
   }
 
   .btn-secondary {
@@ -161,7 +209,7 @@
 
   .btn-danger {
     background: var(--color-raspberry);
-    color: #fff;
+    color: var(--color-on-strong);
   }
 
   .icon-btn {
@@ -202,7 +250,7 @@
   }
 
   .input[aria-invalid="true"] {
-    box-shadow: inset 0 0 0 1.5px var(--color-chip-alert);
+    box-shadow: inset 0 0 0 1.5px var(--color-alert-text);
   }
 
   /* Only during a drag: on landing, cards take their new places without sliding. */

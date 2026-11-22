@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { MAX_WORKERS, chooseWorkers, stackFor } from "./test-plan.mjs";
+import { MAX_WORKERS, chooseWorkers, quickChecksSideBySide, stackFor } from "./test-plan.mjs";
 
 describe("chooseWorkers", () => {
   it("uses 6 workers on 10 cores, the most that still made the tests faster", () => {
@@ -54,5 +54,17 @@ describe("stackFor", () => {
     expect(new Set(all).size).toBe(all.length);
     expect(all).not.toContain(5173);
     expect(all).not.toContain(8765);
+  });
+});
+
+describe("quickChecksSideBySide", () => {
+  it("runs them at once on a laptop with 8 or more cores", () => {
+    expect(quickChecksSideBySide(10)).toBe(true);
+    expect(quickChecksSideBySide(8)).toBe(true);
+  });
+
+  it("runs them one after another on a small machine such as CI's runner", () => {
+    expect(quickChecksSideBySide(4)).toBe(false);
+    expect(quickChecksSideBySide(2)).toBe(false);
   });
 });

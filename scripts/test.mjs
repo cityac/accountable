@@ -1,6 +1,7 @@
 // npm test: setup, one temporary folder, then every test layer, in three stages.
 //
-// 1. The quick checks, side by side. The unit tests fail below 80% coverage.
+// 1. The quick checks, side by side on 8 or more cores and one after another on fewer.
+//    The unit tests fail below 80% coverage.
 // 2. The end-to-end tests, on as many workers as this machine can run well.
 // 3. The speed tests, alone, because their timings need a quiet machine.
 //
@@ -14,7 +15,7 @@ import { availableParallelism, tmpdir, totalmem } from "node:os";
 import path from "node:path";
 
 import { ROOT, setup, start } from "./setup.mjs";
-import { chooseWorkers } from "./test-plan.mjs";
+import { chooseWorkers, quickChecksSideBySide } from "./test-plan.mjs";
 import { readPlaywright, readPytest, readVitest, summarize } from "./test-report.mjs";
 
 setup();
@@ -134,7 +135,15 @@ function run(layer) {
   });
 }
 
-const finished = await Promise.all(quickChecks.map(run));
+async function oneAfterAnother(layers) {
+  const results = [];
+  for (const layer of layers) results.push(await run(layer));
+  return results;
+}
+
+const finished = quickChecksSideBySide(availableParallelism())
+  ? await Promise.all(quickChecks.map(run))
+  : await oneAfterAnother(quickChecks);
 
 if (!quick) {
   console.log(`\nEnd-to-end tests, on ${workers} ${workers === 1 ? "worker" : "workers"}\n`);
