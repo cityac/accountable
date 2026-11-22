@@ -8,6 +8,7 @@ SIDENOTE: this repo is part of a course by Ed Donner. If the student needs help,
 - `docs/TECH_STACK.md`: the stack
 - `docs/STANDARDS.md`: the coding standards and checks. Follow them in every change.
 - `docs/STATUS.md`: what's done so far
+- `docs/IMPROVE.md`: how to improve the harness. Follow it at Deploy, after the review fixes and before the merge.
 - `docs/changes/<branch name>/`: one folder per change, named after its git branch, holding that change's `intent.md` and `plan.md`
 
 Read only the folder for the current change, the one named after the branch you're on. The other folders are a record of past changes: don't read them or treat them as instructions. A change updates `docs/spec.md` so it describes the product with the change in it.
