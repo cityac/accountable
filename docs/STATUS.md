@@ -13,6 +13,16 @@ The MVP is built and its automated tests pass. `docs/spec.md` describes the prod
 - **npm run check:** done. Prettier, ESLint, ruff, ty and gitleaks now check every change, along with `npm test`, which fails below 80% unit test coverage. The frontend moved from TypeScript 7 to 6.0.3, because typescript-eslint can't read TypeScript 7 yet. Fixing what the checks found split the long form, table and board functions into smaller ones, and new page tests took frontend coverage from 57% to 84% of lines.
 - **Docs ready for future changes:** done. `docs/spec.md` now describes the whole product and is the authority on it, and each change gets its own `docs/changes/<branch name>/` folder. The MVP's intent and plan moved to `docs/changes/mvp/`.
 
+## Dark mode
+
+Done, on the `dark-mode` branch (`docs/changes/dark-mode/`). The moon button at the far right of the top bar switches the whole app to dark, and the sun switches it back. The browser remembers the choice, and the app opens straight into it after a refresh or a restart.
+
+- Light mode is unchanged: full-page screenshots of every section, a record page of each kind, a dialog and a chart tooltip matched the ones taken before the change pixel for pixel, apart from the date moving left to make room for the toggle.
+- Every color is a token in `styles.css`, with a light value and a dark one. A layout test fails if a component names a color or uses `dark:`, and `tokens.test.ts` checks every contrast ratio the spec states, in both modes.
+- Dialog backdrops in dark mode are Midnight at 70% rather than black, because black panels behind a black dialog hid its edge.
+- Worth a look from the project owner: black panels on the `#04232E` page are low in contrast (1.29:1), as the brand sets them, and Sea Mist link underlines don't show on Won's Sea Mist column header.
+- Screenshots of the dashboard and the pipeline in both modes are in `docs/changes/dark-mode/`.
+
 ## Compared with the chosen mockup
 
 The app was compared with `docs/mockups/4-chosen-design.html` using Playwright, at 1440 by 900 and 1280 by 720, with the sample data seeded for the mockup's date of Oct 31, 2026. The Pipeline matches the mockup exactly. The Dashboard's layout, figures and charts match to within a pixel, and its Recent activity list holds different entries, because the mockup's are examples. Organizations, Contacts and Deals aren't in the mockup, and use the same shell, colors and type.

@@ -575,6 +575,7 @@ Every color in the app is one of these tokens, defined once in `styles.css` with
 | Grid | `#E4ECEE` | `#173843` | Chart grid lines |
 | Bar, so far | `#839DA5` | `#6E8A93` | The current month's bar, a softer shade of Won fill (dark: 5.72:1 on Panel) |
 | Shadow | Midnight at today's strengths | Black at 60% | The dragged card and dialogs, the only shadows |
+| Overlay | Midnight at 40% | Midnight at 70% | Dialog backdrops. In dark mode it lifts the black panels behind a dialog, so the dialog's edge shows. |
 | Overlay | Midnight at today's strength | Black at 60% | The backdrop behind a dialog |
 
 White text on Cerulean, Raspberry and the two small chip shades stays white in both modes, so the ratios in decision 2 hold in dark mode too. No other text in dark mode falls below 4.5:1, which is the same rule light mode follows.

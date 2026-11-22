@@ -23,7 +23,7 @@ export function ConnectionMessage() {
 
   if (!lost) return null;
   return (
-    <div role="alert" className="mx-5 mt-3 rounded-panel bg-chip-alert px-5 py-3 font-semibold text-white">
+    <div role="alert" className="mx-5 mt-3 rounded-panel bg-chip-alert px-5 py-3 font-semibold text-on-strong">
       {CONNECTION_MESSAGE}
     </div>
   );

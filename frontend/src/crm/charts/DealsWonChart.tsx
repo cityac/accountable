@@ -99,7 +99,7 @@ export function DealsWonChart({ months }: { months: Dashboard["months"] }) {
             radius={[4, 4, 0, 0]}
             isAnimationActive={false}
             shape={(props: BarShapeProps) => (
-              <Rectangle {...props} fill={props.index === last ? "var(--color-bar-soft)" : "var(--color-ink)"} />
+              <Rectangle {...props} fill={props.index === last ? "var(--color-bar-soft)" : "var(--color-won)"} />
             )}
           >
             <LabelList dataKey="deals" content={soFar} />

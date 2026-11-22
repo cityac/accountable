@@ -45,3 +45,21 @@ describe("files that read data", () => {
     }
   });
 });
+
+describe("colors", () => {
+  const sourceFiles = () => code(".").map((file) => [path.relative(SOURCE, file), readFileSync(file, "utf8")] as const);
+
+  it("are only named in styles.css, as tokens that follow the mode", () => {
+    const literal = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(|\b(bg|text|fill|stroke|border)-(white|black)\b|\bdark:/;
+    for (const [file, text] of sourceFiles()) {
+      expect(text, file).not.toMatch(literal);
+    }
+  });
+
+  it("only lib/mode.ts stores the mode or sets it on the page", () => {
+    const touching = sourceFiles()
+      .filter(([, text]) => /localStorage|data-mode/.test(text))
+      .map(([file]) => file);
+    expect(touching).toEqual(["lib/mode.ts"]);
+  });
+});

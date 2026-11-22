@@ -7,6 +7,8 @@ import { REVENUE_MARGIN, revenueEdges, useSize } from "./geometry";
 import { MonthsTable } from "./MonthsTable";
 
 const AXIS_TEXT = { fill: "var(--color-ink)", fontSize: 12, fontFamily: "var(--font-mono)", fontWeight: 500 };
+// The month labels sit on the Sea Green fill, so they keep Midnight in both modes.
+const MONTH_TEXT = { ...AXIS_TEXT, fill: "var(--color-on-color)" };
 
 function niceTop(value: number) {
   const power = 10 ** Math.floor(Math.log10(value));
@@ -47,7 +49,7 @@ type DotProps = { cx?: number; cy?: number; payload?: Row };
 
 function EndDot({ cx, cy, payload }: DotProps) {
   if (!payload?.current || cx === undefined || cy === undefined) return null;
-  return <circle cx={cx} cy={cy} r={5} fill="var(--color-ink)" stroke="#fff" strokeWidth={2} />;
+  return <circle cx={cx} cy={cy} r={5} fill="var(--color-midnight)" stroke="var(--color-panel)" strokeWidth={2} />;
 }
 
 export function RevenueChart({ months }: { months: Dashboard["months"] }) {
@@ -104,7 +106,7 @@ export function RevenueChart({ months }: { months: Dashboard["months"] }) {
               mirror
               axisLine={false}
               tickLine={false}
-              tick={AXIS_TEXT}
+              tick={MONTH_TEXT}
               interval={0}
             />
             <YAxis
@@ -131,7 +133,7 @@ export function RevenueChart({ months }: { months: Dashboard["months"] }) {
             <Line
               type="linear"
               dataKey="solid"
-              stroke="var(--color-ink)"
+              stroke="var(--color-midnight)"
               strokeWidth={2}
               dot={false}
               activeDot={false}
@@ -140,7 +142,7 @@ export function RevenueChart({ months }: { months: Dashboard["months"] }) {
             <Line
               type="linear"
               dataKey="dashed"
-              stroke="var(--color-ink)"
+              stroke="var(--color-midnight)"
               strokeWidth={2}
               strokeDasharray="4 4"
               dot={<EndDot />}

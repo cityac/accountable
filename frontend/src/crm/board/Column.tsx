@@ -8,12 +8,12 @@ import type { Deal, Stage } from "../queries";
 import { DealCard } from "./DealCard";
 
 const HEADS: Record<Stage, string> = {
-  new: "bg-sea-green text-ink",
-  qualified: "bg-marigold text-ink",
-  proposal: "bg-coral text-ink",
-  negotiation: "bg-cerulean text-white",
-  won: "bg-ink text-sea-mist",
-  lost: "bg-raspberry text-white",
+  new: "bg-sea-green text-on-color",
+  qualified: "bg-marigold text-on-color",
+  proposal: "bg-coral text-on-color",
+  negotiation: "bg-cerulean text-on-strong",
+  won: "bg-won text-won-ink",
+  lost: "bg-raspberry text-on-strong",
 };
 
 type Props = {
