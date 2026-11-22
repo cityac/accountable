@@ -161,7 +161,7 @@ Accountable has only been run on a Mac. It's built to work the same on Windows a
 
 ## Running the checks
 
-`npm run check` runs every check on the code, then every test, and ends with a list of what passed. It needs gitleaks, which comes separately: on a Mac, `brew install gitleaks`. `npm run check:quick` leaves out the end-to-end tests, and `npm run format` fixes the formatting. On GitHub, CI runs `npm run check` on every push, and when it fails it uploads the screenshots of any failed end-to-end tests from `test-results/` as `playwright-results`. On fewer than 8 cores, such as CI's runner, `npm test` runs the type check, pytest and Vitest one after another rather than side by side, because side by side a Vitest test there ran ten times past its laptop time.
+`npm run check` runs every check on the code, then every test, and ends with a list of what passed. It needs gitleaks, which comes separately: on a Mac, `brew install gitleaks`. `npm run check:quick` leaves out the end-to-end tests, and `npm run format` fixes the formatting. On GitHub, CI runs `npm run check:quick` on every push, so it leaves out the end-to-end tests: run `npm run check` locally before calling work finished, as AGENTS.md asks. On fewer than 8 cores, such as CI's runner, `npm test` runs the type check, pytest and Vitest one after another rather than side by side, because side by side a Vitest test there ran ten times past its laptop time.
 
 ## Hooks
 
@@ -170,6 +170,13 @@ Accountable has only been run on a Mac. It's built to work the same on Windows a
 - **Claude Code, `.env`** (`.claude/hooks/protect-env.mjs`): blocks the agent's edits and writes to `.env` and `.env.*` (but not `.env.example`), and any shell command that names them.
 
 The Claude Code hooks run with the Node that Claude Code was started with, so start it from a shell on Node 24 or later.
+
+## Subagents
+
+Two Claude Code subagents live in `.claude/agents/`. Both run on Sonnet and neither changes code.
+
+- **reviewer** (`reviewer.md`): reviews the branch's changes against `docs/REVIEW.md` and reports findings by severity. It has only read tools. A PreToolUse hook in its frontmatter (`.claude/hooks/reviewer-read-only.mjs`) denies any Bash command that isn't on its read-only list (`git diff`, `git log`, `git show`, `grep`, `cat` and the like), along with file redirects, command substitution, `sed -i`, `find -delete` and `-exec`, and `git branch` with a branch name. Like the `.env` hook, it reads the command's text, so it's a guard against mistakes, not a sandbox.
+- **ui-check** (`ui-check.md`): opens each page of the running app with the Playwright MCP server in light and dark mode, takes screenshots into `.playwright-mcp/` (which git ignores), and checks them against the brand skill and `docs/spec.md`. It needs the app running with `npm run dev` first.
 
 ## Running the tests
 
