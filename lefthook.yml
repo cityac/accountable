@@ -1,0 +1,40 @@
+# Git hooks. npm install sets them up. The tests are left to npm run check, so a commit stays quick.
+
+pre-commit:
+  # Formatting goes first, so the checks see the files as they'll be committed.
+  piped: true
+  jobs:
+    - name: format
+      group:
+        parallel: true
+        jobs:
+          - name: frontend format
+            root: frontend/
+            glob: "*.{js,jsx,ts,tsx,json,css,html,md}"
+            run: node ../node_modules/prettier/bin/prettier.cjs --write --ignore-unknown --log-level=warn {staged_files}
+            stage_fixed: true
+          - name: backend format
+            glob: "backend/**/*.py"
+            run: uv run --no-sync ruff format {staged_files}
+            stage_fixed: true
+
+    - name: checks
+      group:
+        parallel: true
+        jobs:
+          - name: frontend lint
+            root: frontend/
+            glob: "*.{js,jsx,ts,tsx}"
+            run: node ../node_modules/eslint/bin/eslint.js --max-warnings 0 --no-warn-ignored {staged_files}
+          # Types span files, so a change to one can break another: check the whole project.
+          - name: frontend types
+            glob: "frontend/**/*.{ts,tsx}"
+            run: node node_modules/typescript/bin/tsc --noEmit -p frontend
+          - name: backend lint
+            glob: "backend/**/*.py"
+            run: uv run --no-sync ruff check {staged_files}
+          - name: backend types
+            glob: "backend/**/*.py"
+            run: uv run --no-sync ty check backend
+          - name: secrets
+            run: gitleaks git --pre-commit --staged --redact --no-banner .

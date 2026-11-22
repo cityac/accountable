@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, type KeyboardEvent, type PointerEvent } from "react";
 import { Link } from "react-router";
 
 import { Chip } from "../../components/Chip";
@@ -51,6 +51,9 @@ type CardProps = {
   landed: boolean;
   /** Pixels up or down, while another card is dragged. */
   offset: number;
+  // Not compared in sameCard: the board keeps the same pair for every card.
+  onPointerDown: (event: PointerEvent<HTMLElement>) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
 };
 
 function sameCard(a: CardProps, b: CardProps) {
@@ -72,12 +75,22 @@ function sameCard(a: CardProps, b: CardProps) {
   );
 }
 
-export const DealCard = memo(function DealCard({ deal, today, dragging, landed, offset }: CardProps) {
+export const DealCard = memo(function DealCard({
+  deal,
+  today,
+  dragging,
+  landed,
+  offset,
+  onPointerDown,
+  onKeyDown,
+}: CardProps) {
   const late = isLate(deal, today);
   return (
     <Link
       to={`/deals/${deal.id}`}
       draggable={false}
+      onPointerDown={onPointerDown}
+      onKeyDown={onKeyDown}
       data-deal-id={deal.id}
       data-testid="deal-card"
       data-deal={deal.name}

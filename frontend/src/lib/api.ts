@@ -55,7 +55,9 @@ type Options = {
   signal?: AbortSignal;
 };
 
-async function readJson(reply: Response): Promise<any> {
+type ErrorReply = { detail?: string; fields?: Record<string, string> } | null;
+
+async function readError(reply: Response): Promise<ErrorReply> {
   try {
     return await reply.json();
   } catch {
@@ -63,10 +65,9 @@ async function readJson(reply: Response): Promise<any> {
   }
 }
 
-export async function api<T>(path: string, { method = "GET", body, signal }: Options = {}): Promise<T> {
-  let reply: Response;
+async function send(path: string, { method = "GET", body, signal }: Options): Promise<Response> {
   try {
-    reply = await fetch(`/api${path}`, {
+    return await fetch(`/api${path}`, {
       method,
       signal,
       headers: body === undefined ? undefined : { "Content-Type": "application/json" },
@@ -77,24 +78,30 @@ export async function api<T>(path: string, { method = "GET", body, signal }: Opt
     setConnectionLost(true);
     throw new ApiError("connection", CONNECTION_MESSAGE);
   }
+}
 
-  // The backend answers every error in JSON. A non-JSON 5xx comes from the dev
-  // server, which is still up but can't reach the backend behind it.
+// The backend answers every error in JSON. A non-JSON 5xx comes from the dev
+// server, which is still up but can't reach the backend behind it.
+function backendUnreachable(reply: Response) {
   const isJson = reply.headers.get("content-type")?.includes("application/json") ?? false;
-  if (reply.status >= 500 && !isJson) {
+  return reply.status >= 500 && !isJson;
+}
+
+async function failure(reply: Response): Promise<ApiError> {
+  const data = await readError(reply);
+  if (reply.status === 404) return new ApiError("missing", data?.detail ?? "That record no longer exists.");
+  if (reply.status === 422) return new ApiError("fields", data?.detail ?? "Check the form.", data?.fields ?? {});
+  return new ApiError("server", data?.detail ?? "Something went wrong.");
+}
+
+export async function api<T>(path: string, options: Options = {}): Promise<T> {
+  const reply = await send(path, options);
+  if (backendUnreachable(reply)) {
     setConnectionLost(true);
     throw new ApiError("connection", CONNECTION_MESSAGE);
   }
   setConnectionLost(false);
 
-  if (reply.ok) {
-    return (reply.status === 204 ? undefined : await reply.json()) as T;
-  }
-
-  const data = await readJson(reply);
-  if (reply.status === 404) throw new ApiError("missing", data?.detail ?? "That record no longer exists.");
-  if (reply.status === 422) {
-    throw new ApiError("fields", data?.detail ?? "Check the form.", data?.fields ?? {});
-  }
-  throw new ApiError("server", data?.detail ?? "Something went wrong.");
+  if (!reply.ok) throw await failure(reply);
+  return (reply.status === 204 ? undefined : await reply.json()) as T;
 }

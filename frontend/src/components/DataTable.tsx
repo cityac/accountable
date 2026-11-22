@@ -98,13 +98,11 @@ export function DataTable<T extends RowData>({
   clearParams = [],
 }: Props<T>) {
   const navigate = useNavigate();
-  const { params, latest, update } = useAddress();
+  const { params, latest, update, outsideChanges } = useAddress();
 
   function readSort(address: URLSearchParams) {
     const id = address.get("sort");
-    return id && columns.some((column) => column.id === id)
-      ? { id, desc: address.get("dir") === "desc" }
-      : defaultSort;
+    return id && columns.some((column) => column.id === id) ? { id, desc: address.get("dir") === "desc" } : defaultSort;
   }
 
   function readPage(address: URLSearchParams) {
@@ -117,11 +115,13 @@ export function DataTable<T extends RowData>({
 
   // The box keeps its own text, because the address updates a moment later and a
   // box fed from it would drop whatever was typed in between. It follows the
-  // address only when something else changed it: Clear search, back or forward.
+  // address only when something else changed it, such as back or forward.
   const [searchText, setSearchText] = useState(search);
-  useEffect(() => {
-    if (search === (latest.current.get("q") ?? "")) setSearchText(search);
-  }, [search, latest]);
+  const [followedChanges, setFollowedChanges] = useState(outsideChanges);
+  if (followedChanges !== outsideChanges) {
+    setFollowedChanges(outsideChanges);
+    setSearchText(search);
+  }
 
   /** Ascending, then descending. A further click never clears the sort. */
   function toggleSort(id: string) {
@@ -144,6 +144,7 @@ export function DataTable<T extends RowData>({
   }
 
   function clearSearch() {
+    setSearchText("");
     update((next) => {
       next.delete("q");
       next.delete("page");
@@ -202,8 +203,6 @@ export function DataTable<T extends RowData>({
   const matching = table.getFilteredRowModel().rows.length;
   const lastPage = Math.max(1, Math.ceil(matching / PAGE_SIZE));
   const visible = table.getRowModel().rows;
-  const first = (page - 1) * PAGE_SIZE + 1;
-
   // Deleting the last row on the last page, or an old link, can leave the address
   // past the end, where there'd be no rows and no paging to get back with.
   useEffect(() => {
@@ -234,52 +233,29 @@ export function DataTable<T extends RowData>({
       </div>
 
       <div className="panel p-2">
-        <LoadFailed keeping={rows !== undefined} error={error} onRetry={onRetry} />
-
-        {rows !== undefined && rows.length === 0 && !search && !filtered && (
-          <EmptyState message={`No ${noun}s yet. Add the first one.`}>
-            <button type="button" className="btn btn-primary" onClick={onAdd}>
-              Add {noun}
-            </button>
-          </EmptyState>
-        )}
-
-        {rows !== undefined && matching === 0 && (search !== "" || filtered) && (
-          <EmptyState message={`No ${noun}s match.`}>
-            <button type="button" className="btn btn-secondary" onClick={clearSearch}>
-              Clear search
-            </button>
-          </EmptyState>
-        )}
-
-        {rows === undefined && !error && <div className="h-40" aria-busy="true" />}
+        <TableMessages
+          noun={noun}
+          rows={rows}
+          error={error}
+          onRetry={onRetry}
+          narrowed={search !== "" || filtered}
+          matching={matching}
+          onAdd={onAdd}
+          onClear={clearSearch}
+        />
 
         {matching > 0 && (
           <table className="w-full table-fixed border-separate border-spacing-0">
             <thead>
               <tr>
-                {table.getHeaderGroups()[0].headers.map((header) => {
-                  const column = cells.get(header.column.id)!;
-                  const sorted = header.column.getIsSorted();
-                  return (
-                    <th
-                      key={header.id}
-                      scope="col"
-                      aria-sort={sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined}
-                      className={`h-9 px-2.5 text-[13px] font-semibold ${column.numeric ? "text-right" : "text-left"} ${column.width ?? ""}`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => toggleSort(column.id)}
-                        className={`inline-flex items-center gap-1 rounded ${column.numeric ? "flex-row-reverse" : ""}`}
-                      >
-                        {column.header}
-                        {sorted === "asc" && <ArrowUp size={13} aria-hidden="true" />}
-                        {sorted === "desc" && <ArrowDown size={13} aria-hidden="true" />}
-                      </button>
-                    </th>
-                  );
-                })}
+                {table.getHeaderGroups()[0].headers.map((header) => (
+                  <SortHeader
+                    key={header.id}
+                    column={cells.get(header.column.id)!}
+                    sorted={header.column.getIsSorted()}
+                    onSort={toggleSort}
+                  />
+                ))}
                 <th scope="col" className="w-[84px]">
                   <span className="sr-only">Actions</span>
                 </th>
@@ -287,87 +263,206 @@ export function DataTable<T extends RowData>({
             </thead>
             <tbody>
               {visible.map((row) => (
-                <tr
+                <TableRow
                   key={row.id}
-                  onClick={() => navigate(rowHref(row.original))}
-                  className="group h-11 cursor-pointer hover:bg-page"
-                >
-                  {row.getAllCells().map((cell, index) => {
-                    const column = cells.get(cell.column.id)!;
-                    const shown = column.cell ? column.cell(row.original) : (column.value(row.original) ?? "");
-                    return (
-                      <td
-                        key={cell.id}
-                        className={`truncate px-2.5 first:rounded-l-[10px] ${column.numeric ? "num text-right text-[13px]" : ""}`}
-                      >
-                        {index === 0 ? (
-                          <Link
-                            to={rowHref(row.original)}
-                            onClick={(event) => event.stopPropagation()}
-                            className="block truncate rounded font-medium"
-                          >
-                            {shown}
-                          </Link>
-                        ) : (
-                          shown
-                        )}
-                      </td>
-                    );
-                  })}
-                  <td className="rounded-r-[10px] pr-1 text-right whitespace-nowrap">
-                    <button
-                      type="button"
-                      aria-label={`Edit ${rowName(row.original)}`}
-                      className="icon-btn"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onEdit(row.original);
-                      }}
-                    >
-                      <Pencil size={16} aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`Delete ${rowName(row.original)}`}
-                      className="icon-btn"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onDelete(row.original);
-                      }}
-                    >
-                      <Trash2 size={16} aria-hidden="true" />
-                    </button>
-                  </td>
-                </tr>
+                  row={row.original}
+                  cells={row.getAllCells().map((cell) => ({ id: cell.id, column: cells.get(cell.column.id)! }))}
+                  href={rowHref(row.original)}
+                  name={rowName(row.original)}
+                  onOpen={() => navigate(rowHref(row.original))}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
               ))}
             </tbody>
           </table>
         )}
 
         {matching > PAGE_SIZE && (
-          <div className="flex items-center justify-end gap-3 px-2.5 pt-2.5 pb-1">
-            <span className="num text-[13px] text-muted">
-              {first}-{Math.min(first + PAGE_SIZE - 1, matching)} of {matching}
-            </span>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={page <= 1}
-              onClick={() => table.previousPage()}
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={page >= lastPage}
-              onClick={() => table.nextPage()}
-            >
-              Next
-            </button>
-          </div>
+          <Pager
+            page={page}
+            lastPage={lastPage}
+            matching={matching}
+            onPrevious={() => table.previousPage()}
+            onNext={() => table.nextPage()}
+          />
         )}
       </div>
+    </div>
+  );
+}
+
+function ariaSort(sorted: false | "asc" | "desc") {
+  if (sorted === "asc") return "ascending";
+  if (sorted === "desc") return "descending";
+  return undefined;
+}
+
+function SortHeader<T>({
+  column,
+  sorted,
+  onSort,
+}: {
+  column: TableColumn<T>;
+  sorted: false | "asc" | "desc";
+  onSort: (id: string) => void;
+}) {
+  return (
+    <th
+      scope="col"
+      aria-sort={ariaSort(sorted)}
+      className={`h-9 px-2.5 text-[13px] font-semibold ${column.numeric ? "text-right" : "text-left"} ${column.width ?? ""}`}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(column.id)}
+        className={`inline-flex items-center gap-1 rounded ${column.numeric ? "flex-row-reverse" : ""}`}
+      >
+        {column.header}
+        {sorted === "asc" && <ArrowUp size={13} aria-hidden="true" />}
+        {sorted === "desc" && <ArrowDown size={13} aria-hidden="true" />}
+      </button>
+    </th>
+  );
+}
+
+function TableRow<T>({
+  row,
+  cells,
+  href,
+  name,
+  onOpen,
+  onEdit,
+  onDelete,
+}: {
+  row: T;
+  cells: { id: string; column: TableColumn<T> }[];
+  href: string;
+  name: string;
+  onOpen: () => void;
+  onEdit: (row: T) => void;
+  onDelete: (row: T) => void;
+}) {
+  return (
+    <tr onClick={onOpen} className="group h-11 cursor-pointer hover:bg-page">
+      {cells.map(({ id, column }, index) => {
+        const shown = column.cell ? column.cell(row) : (column.value(row) ?? "");
+        return (
+          <td
+            key={id}
+            className={`truncate px-2.5 first:rounded-l-[10px] ${column.numeric ? "num text-right text-[13px]" : ""}`}
+          >
+            {index === 0 ? (
+              <Link
+                to={href}
+                onClick={(event) => event.stopPropagation()}
+                className="block truncate rounded font-medium"
+              >
+                {shown}
+              </Link>
+            ) : (
+              shown
+            )}
+          </td>
+        );
+      })}
+      <td className="rounded-r-[10px] pr-1 text-right whitespace-nowrap">
+        <button
+          type="button"
+          aria-label={`Edit ${name}`}
+          className="icon-btn"
+          onClick={(event) => {
+            event.stopPropagation();
+            onEdit(row);
+          }}
+        >
+          <Pencil size={16} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          aria-label={`Delete ${name}`}
+          className="icon-btn"
+          onClick={(event) => {
+            event.stopPropagation();
+            onDelete(row);
+          }}
+        >
+          <Trash2 size={16} aria-hidden="true" />
+        </button>
+      </td>
+    </tr>
+  );
+}
+
+function TableMessages<T>({
+  noun,
+  rows,
+  error,
+  onRetry,
+  narrowed,
+  matching,
+  onAdd,
+  onClear,
+}: {
+  noun: string;
+  rows: T[] | undefined;
+  error: unknown;
+  onRetry: () => void;
+  narrowed: boolean;
+  matching: number;
+  onAdd: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <>
+      <LoadFailed keeping={rows !== undefined} error={error} onRetry={onRetry} />
+
+      {rows !== undefined && rows.length === 0 && !narrowed && (
+        <EmptyState message={`No ${noun}s yet. Add the first one.`}>
+          <button type="button" className="btn btn-primary" onClick={onAdd}>
+            Add {noun}
+          </button>
+        </EmptyState>
+      )}
+
+      {rows !== undefined && matching === 0 && narrowed && (
+        <EmptyState message={`No ${noun}s match.`}>
+          <button type="button" className="btn btn-secondary" onClick={onClear}>
+            Clear search
+          </button>
+        </EmptyState>
+      )}
+
+      {rows === undefined && !error && <div className="h-40" aria-busy="true" />}
+    </>
+  );
+}
+
+function Pager({
+  page,
+  lastPage,
+  matching,
+  onPrevious,
+  onNext,
+}: {
+  page: number;
+  lastPage: number;
+  matching: number;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  const first = (page - 1) * PAGE_SIZE + 1;
+  return (
+    <div className="flex items-center justify-end gap-3 px-2.5 pt-2.5 pb-1">
+      <span className="num text-[13px] text-muted">
+        {first}-{Math.min(first + PAGE_SIZE - 1, matching)} of {matching}
+      </span>
+      <button type="button" className="btn btn-secondary" disabled={page <= 1} onClick={onPrevious}>
+        Previous
+      </button>
+      <button type="button" className="btn btn-secondary" disabled={page >= lastPage} onClick={onNext}>
+        Next
+      </button>
     </div>
   );
 }

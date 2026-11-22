@@ -1,12 +1,23 @@
 """Pydantic request and reply models, and the plain-English messages for bad input."""
 
 import re
+from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime
 from typing import Annotated, Any, Literal
 from urllib.parse import urlsplit
 
 from fastapi import Path
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, PlainSerializer, StrictBool, StrictInt, field_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    PlainSerializer,
+    StrictBool,
+    StrictInt,
+    ValidationInfo,
+    field_validator,
+)
 
 Stage = Literal["new", "qualified", "proposal", "negotiation", "won", "lost"]
 Status = Literal["lead", "qualified", "customer"]
@@ -41,7 +52,7 @@ class FieldError(Exception):
         self.fields = fields
 
 
-def field_messages(errors: list[dict[str, Any]]) -> dict[str, str]:
+def field_messages(errors: Sequence[Mapping[str, Any]]) -> dict[str, str]:
     fields: dict[str, str] = {}
     for error in errors:
         location = error["loc"]
@@ -98,7 +109,12 @@ def _website(value: str | None) -> str | None:
         port_is_fine = parts.port is None or parts.port >= 0  # Reading it is what checks it.
     except ValueError as error:
         raise ValueError(WEBSITE_MESSAGE) from error
-    if parts.scheme.lower() not in ("http", "https") or not parts.hostname or not port_is_fine or re.search(r"\s", value):
+    if (
+        parts.scheme.lower() not in ("http", "https")
+        or not parts.hostname
+        or not port_is_fine
+        or re.search(r"\s", value)
+    ):
         raise ValueError(WEBSITE_MESSAGE)
     return value
 
@@ -131,6 +147,13 @@ IncomingTime = Annotated[datetime, AfterValidator(_to_utc)]
 UtcTime = Annotated[datetime, PlainSerializer(_with_z, return_type=str)]
 
 
+def _not_null(value: Any, info: ValidationInfo) -> Any:
+    """In an edit, a field left out keeps its value, but one sent as null is an error."""
+    if value is None:
+        raise ValueError(FIELD_MESSAGES.get(info.field_name or "", "Check this field"))
+    return value
+
+
 class Request(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -157,10 +180,12 @@ class OrganizationCreate(Request):
 
 
 class OrganizationUpdate(Request):
-    name: Name = None
+    name: Name | None = None
     website: Website = None
     industry: OptionalText = None
     notes: OptionalText = None
+
+    _not_null = field_validator("name", mode="before")(_not_null)
 
 
 class Organization(BaseModel):
@@ -216,12 +241,14 @@ class ContactCreate(Request):
 
 
 class ContactUpdate(Request):
-    name: Name = None
+    name: Name | None = None
     organization_id: Id | None = None
     email: Email = None
     phone: OptionalText = None
     job_title: OptionalText = None
-    status: Status = None
+    status: Status | None = None
+
+    _not_null = field_validator("name", "status", mode="before")(_not_null)
 
 
 class Contact(BaseModel):
@@ -262,13 +289,15 @@ class DealCreate(Request):
 
 
 class DealUpdate(Request):
-    name: Name = None
+    name: Name | None = None
     organization_id: Id | None = None
     main_contact_id: Id | None = None
-    stage: Stage = None
-    value: Dollars = None
-    probability: Probability = None
-    close_date: date = None
+    stage: Stage | None = None
+    value: Dollars | None = None
+    probability: Probability | None = None
+    close_date: date | None = None
+
+    _not_null = field_validator("name", "stage", "value", "probability", "close_date", mode="before")(_not_null)
 
 
 class DealMove(Request):
@@ -322,11 +351,13 @@ class ActivityCreate(Request):
 
 
 class ActivityUpdate(Request):
-    type: ActivityType = None
-    description: Description = None
-    occurred_at: IncomingTime = None
+    type: ActivityType | None = None
+    description: Description | None = None
+    occurred_at: IncomingTime | None = None
     follow_up_date: date | None = None
-    follow_up_done: StrictBool = None
+    follow_up_done: StrictBool | None = None
+
+    _not_null = field_validator("type", "description", "occurred_at", "follow_up_done", mode="before")(_not_null)
 
 
 class Activity(BaseModel):

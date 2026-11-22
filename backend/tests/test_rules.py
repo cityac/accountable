@@ -151,10 +151,9 @@ def test_a_failure_partway_leaves_nothing_changed(make, deal_row, contact_row):
     deal = make.deal(stage="negotiation", main_contact_id=contact)
     before = deal_row(deal)
 
-    with pytest.raises(RuntimeError):
-        with db.writing() as conn:
-            rules.change_stage(conn, deal, "won", today=TODAY, now=NOW)
-            raise RuntimeError("the power went out")
+    with pytest.raises(RuntimeError), db.writing() as conn:
+        rules.change_stage(conn, deal, "won", today=TODAY, now=NOW)
+        raise RuntimeError("the power went out")
 
     assert deal_row(deal) == before
     assert contact_row(contact).status == "lead"
@@ -187,5 +186,3 @@ def test_usual_probabilities_are_the_intents():
         "won": 100,
         "lost": 0,
     }
-
-

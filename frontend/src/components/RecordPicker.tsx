@@ -1,7 +1,7 @@
 import { Command } from "cmdk";
 import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { Popover } from "radix-ui";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 
 export type PickerOption = { id: number; name: string; hint?: string | null };
 
@@ -23,6 +23,7 @@ const VISIBLE = 50;
 
 export function RecordPicker({ id, label, noun, value, options, placeholder, invalid, onChange, onAdd }: Props) {
   const [open, setOpen] = useState(false);
+  const listId = useId();
   const [search, setSearch] = useState("");
 
   const matches = useMemo(() => {
@@ -54,6 +55,7 @@ export function RecordPicker({ id, label, noun, value, options, placeholder, inv
           role="combobox"
           aria-label={label}
           aria-expanded={open}
+          aria-controls={listId}
           aria-invalid={invalid}
           className="input flex items-center justify-between gap-2 text-left"
         >
@@ -65,6 +67,7 @@ export function RecordPicker({ id, label, noun, value, options, placeholder, inv
       </Popover.Trigger>
       {/* Kept inside the dialog: portaled out of it, the list can't be scrolled with a wheel. */}
       <Popover.Content
+        id={listId}
         align="start"
         sideOffset={4}
         className="z-50 w-[var(--radix-popover-trigger-width)] rounded-card bg-panel p-1.5 shadow-[0_8px_28px_rgba(7,59,76,0.2)]"

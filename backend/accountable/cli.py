@@ -26,10 +26,10 @@ def _nothing(_conn: Connection) -> None:
 
 def _counts(conn: Connection) -> dict[str, int]:
     return {
-        "organizations": conn.scalar(select(func.count()).select_from(organizations)),
-        "contacts": conn.scalar(select(func.count()).select_from(contacts)),
-        "deals": conn.scalar(select(func.count()).select_from(deals)),
-        "activities": conn.scalar(select(func.count()).select_from(activities)),
+        "organizations": conn.execute(select(func.count()).select_from(organizations)).scalar_one(),
+        "contacts": conn.execute(select(func.count()).select_from(contacts)).scalar_one(),
+        "deals": conn.execute(select(func.count()).select_from(deals)).scalar_one(),
+        "activities": conn.execute(select(func.count()).select_from(activities)).scalar_one(),
     }
 
 

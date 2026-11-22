@@ -1,8 +1,10 @@
 // npm test: setup, one temporary folder, then every test layer, in three stages.
 //
-// 1. The quick checks, side by side.
+// 1. The quick checks, side by side. The unit tests fail below 80% coverage.
 // 2. The end-to-end tests, on as many workers as this machine can run well.
 // 3. The speed tests, alone, because their timings need a quiet machine.
+//
+// With --quick, only the first stage runs.
 //
 // The database path is chosen here, once, because Playwright reads its config again
 // in every worker: a path made there would differ between the servers and the resets.
@@ -18,6 +20,8 @@ import { readPlaywright, readPytest, readVitest, summarize } from "./test-report
 setup();
 
 const startedAt = performance.now();
+const quick = process.argv.includes("--quick");
+const MIN_COVERAGE = 80;
 
 let workers;
 try {
@@ -40,6 +44,8 @@ const env = {
   ACCOUNTABLE_DB: report("test.db"),
   // Kept between runs to save filling it each time, and apart from the cache npm run dev uses.
   ACCOUNTABLE_VITE_CACHE: path.join(ROOT, "node_modules", ".vite-test"),
+  // Coverage's data file goes with the rest, not into the repo.
+  COVERAGE_FILE: report("backend.coverage"),
 };
 
 const node = process.execPath;
@@ -58,7 +64,16 @@ const quickChecks = [
   {
     name: "Backend",
     command: "uv",
-    args: ["run", "--no-sync", "pytest", "-q", `--junit-xml=${report("backend.xml")}`],
+    args: [
+      "run",
+      "--no-sync",
+      "pytest",
+      "-q",
+      `--junit-xml=${report("backend.xml")}`,
+      "--cov",
+      "--cov-report=term:skip-covered",
+      `--cov-fail-under=${MIN_COVERAGE}`,
+    ],
     read: () => readPytest(text("backend.xml")),
   },
   {
@@ -72,6 +87,8 @@ const quickChecks = [
       "--reporter=default",
       "--reporter=json",
       `--outputFile.json=${report("frontend.json")}`,
+      "--coverage.enabled",
+      `--coverage.reportsDirectory=${report("frontend-coverage")}`,
     ],
     read: () => readVitest(text("frontend.json"), ROOT),
   },
@@ -119,11 +136,13 @@ function run(layer) {
 
 const finished = await Promise.all(quickChecks.map(run));
 
-console.log(`\nEnd-to-end tests, on ${workers} ${workers === 1 ? "worker" : "workers"}\n`);
-finished.push(await run(browserLayer("End-to-end", "main", workers)));
+if (!quick) {
+  console.log(`\nEnd-to-end tests, on ${workers} ${workers === 1 ? "worker" : "workers"}\n`);
+  finished.push(await run(browserLayer("End-to-end", "main", workers)));
 
-console.log("\nSpeed tests, on their own\n");
-finished.push(await run(browserLayer("Speed", "speed", 1)));
+  console.log("\nSpeed tests, on their own\n");
+  finished.push(await run(browserLayer("Speed", "speed", 1)));
+}
 
 rmSync(folder, { recursive: true, force: true });
 

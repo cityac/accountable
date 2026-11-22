@@ -10,7 +10,7 @@ from accountable.crm.tables import activities, contacts, deals, organizations, s
 def counts() -> dict[str, int]:
     with db.reading() as conn:
         return {
-            table.name: conn.scalar(select(func.count()).select_from(table))
+            table.name: conn.execute(select(func.count()).select_from(table)).scalar_one()
             for table in (organizations, contacts, deals, activities, stage_changes)
         }
 

@@ -6,7 +6,7 @@ a test can touch real data.
 
 import os
 import shutil
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import date, datetime
 from pathlib import Path
@@ -33,13 +33,13 @@ def _check_database_path() -> None:
 
 _check_database_path()
 
-from accountable import db  # noqa: E402
-from accountable.crm import rules  # noqa: E402
-from accountable.crm.tables import activities, contacts, deals, organizations  # noqa: E402
+from accountable import db
+from accountable.crm import rules
+from accountable.crm.tables import activities, contacts, deals, organizations
 
 
 @contextmanager
-def using_database(path: Path) -> Iterator[None]:
+def using_database(path: Path) -> Generator[None]:
     """Points the app at this file, for fixtures that outlive a single test."""
     with pytest.MonkeyPatch.context() as patch:
         patch.setenv("ACCOUNTABLE_DB", str(path))
@@ -58,7 +58,7 @@ def migrated_file(tmp_path_factory) -> Path:
 
 
 @pytest.fixture
-def database(migrated_file, tmp_path, monkeypatch) -> Path:
+def database(migrated_file, tmp_path, monkeypatch) -> Generator[Path]:
     """A fresh, empty database in a folder of its own."""
     path = tmp_path / "test.db"
     shutil.copyfile(migrated_file, path)
@@ -73,11 +73,11 @@ class Make:
 
     def organization(self, name: str = "Harbor & Pine", **values: Any) -> int:
         with db.writing() as conn:
-            return conn.execute(insert(organizations).values(name=name, **values)).inserted_primary_key[0]
+            return db.inserted_id(conn.execute(insert(organizations).values(name=name, **values)))
 
     def contact(self, name: str = "Sam Carter", **values: Any) -> int:
         with db.writing() as conn:
-            return conn.execute(insert(contacts).values(name=name, **values)).inserted_primary_key[0]
+            return db.inserted_id(conn.execute(insert(contacts).values(name=name, **values)))
 
     def deal(self, name: str = "Annual support", **values: Any) -> int:
         row = {"stage": "new", "value": 10000, "close_date": date(2026, 12, 1), **values}
@@ -87,7 +87,7 @@ class Make:
     def activity(self, **values: Any) -> int:
         row = {"type": "note", "description": "Spoke to them", "occurred_at": NOW, **values}
         with db.writing() as conn:
-            return conn.execute(insert(activities).values(**row)).inserted_primary_key[0]
+            return db.inserted_id(conn.execute(insert(activities).values(**row)))
 
 
 @pytest.fixture
@@ -114,7 +114,7 @@ def contact_row(database):
 
 
 @pytest.fixture
-def api(database) -> TestClient:
+def api(database) -> Generator[TestClient]:
     """The API on a fresh database, with today and now fixed."""
     from accountable.main import app
 

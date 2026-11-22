@@ -1,5 +1,5 @@
 import { useDroppable } from "@dnd-kit/core";
-import { memo, useMemo } from "react";
+import { memo, useMemo, type KeyboardEvent, type PointerEvent } from "react";
 
 import { Icon } from "../../components/Icon";
 import { money } from "../../lib/money";
@@ -28,12 +28,27 @@ type Props = {
   step: number;
   onAdd: (stage: Stage) => void;
   listRef: (stage: Stage, element: HTMLDivElement | null) => void;
+  /** Picks up a card. One pair for the whole board, so they never change. */
+  onCardPointerDown: (event: PointerEvent<HTMLElement>) => void;
+  onCardKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
 };
 
 const LIST_PADDING = 8;
 const CARD_GAP = 8;
 
-export const Column = memo(function Column({ stage, deals, today, draggingId, landedId, place, step, onAdd, listRef }: Props) {
+export const Column = memo(function Column({
+  stage,
+  deals,
+  today,
+  draggingId,
+  landedId,
+  place,
+  step,
+  onAdd,
+  listRef,
+  onCardPointerDown,
+  onCardKeyDown,
+}: Props) {
   const { setNodeRef } = useDroppable({ id: stage });
   const totals = figures(deals);
 
@@ -47,9 +62,11 @@ export const Column = memo(function Column({ stage, deals, today, draggingId, la
         dragging={deal.id === draggingId}
         landed={deal.id === landedId}
         offset={slideSteps(index, draggedIndex, place) * step}
+        onPointerDown={onCardPointerDown}
+        onKeyDown={onCardKeyDown}
       />
     ));
-  }, [deals, today, draggingId, landedId, place, step]);
+  }, [deals, today, draggingId, landedId, place, step, onCardPointerDown, onCardKeyDown]);
 
   return (
     <section aria-label={STAGE_NAMES[stage]} data-testid={`column-${stage}`} className="flex min-h-0 min-w-0 flex-col">

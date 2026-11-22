@@ -143,7 +143,10 @@ describe("the timeline", () => {
     const total = 525;
     const routes: Record<string, TimelineReply> = {};
     for (let offset = 0; offset < total; offset += 50) {
-      routes[`GET /deals/7/timeline?limit=50&offset=${offset}`] = reply(entriesFrom(offset + 1, Math.min(50, total - offset)), total);
+      routes[`GET /deals/7/timeline?limit=50&offset=${offset}`] = reply(
+        entriesFrom(offset + 1, Math.min(50, total - offset)),
+        total,
+      );
     }
     show(routes);
     await entryNamed("Activity 50");
@@ -153,7 +156,8 @@ describe("the timeline", () => {
       await waitFor(() => expect(screen.getAllByTestId("timeline-entry").length).toBeGreaterThan(before));
     }
     expect(screen.getAllByTestId("timeline-entry")).toHaveLength(total);
-  });
+    // Ten pages and 525 rendered entries: about 4s on a laptop, over the 5s default on a CI runner.
+  }, 20_000);
 
   it("keeps what's showing if Show more fails, and can try again", async () => {
     let broken = true;
@@ -192,7 +196,8 @@ describe("the timeline", () => {
   it("keeps what's showing if a later read fails, says so, and can try again", async () => {
     let broken = false;
     mockApi({
-      [FIRST_PAGE]: () => (broken ? { status: 500, body: { detail: "Something went wrong." } } : { body: reply([activity(1)]) }),
+      [FIRST_PAGE]: () =>
+        broken ? { status: 500, body: { detail: "Something went wrong." } } : { body: reply([activity(1)]) },
     });
     const { client } = renderApp(<Timeline kind="deals" id={7} logTo={{ deal_id: 7 }} empty="Nothing logged yet." />);
     await screen.findByText("Activity 1");

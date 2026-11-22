@@ -33,6 +33,29 @@ function contactSchema(record?: Contact) {
 
 type Values = z.infer<ReturnType<typeof contactSchema>>;
 
+function defaultValues(record?: Contact, defaultName?: string, defaultOrganizationId?: number | null): Values {
+  return {
+    name: record?.name ?? defaultName ?? "",
+    organization_id: record ? record.organization_id : (defaultOrganizationId ?? null),
+    email: record?.email ?? "",
+    phone: record?.phone ?? "",
+    job_title: record?.job_title ?? "",
+    status: record?.status ?? "lead",
+  };
+}
+
+// Blank text is sent as null, so a cleared field is stored as empty.
+function toRequest(values: Values) {
+  return {
+    name: values.name,
+    organization_id: values.organization_id,
+    email: values.email || null,
+    phone: values.phone || null,
+    job_title: values.job_title || null,
+    status: values.status,
+  };
+}
+
 type Props = {
   record?: Contact;
   defaultName?: string;
@@ -58,14 +81,7 @@ export function ContactForm({ record, defaultName, defaultOrganizationId, onClos
     formState: { errors },
   } = useForm<Values>({
     resolver: zodResolver(contactSchema(record)),
-    defaultValues: {
-      name: record?.name ?? defaultName ?? "",
-      organization_id: record ? record.organization_id : (defaultOrganizationId ?? null),
-      email: record?.email ?? "",
-      phone: record?.phone ?? "",
-      job_title: record?.job_title ?? "",
-      status: record?.status ?? "lead",
-    },
+    defaultValues: defaultValues(record, defaultName, defaultOrganizationId),
   });
 
   const organizationBlankAllowed = record !== undefined && record.organization_id === null;
@@ -76,14 +92,7 @@ export function ContactForm({ record, defaultName, defaultOrganizationId, onClos
 
   async function submit(values: Values) {
     try {
-      const saved = await save.mutateAsync({
-        name: values.name,
-        organization_id: values.organization_id,
-        email: values.email || null,
-        phone: values.phone || null,
-        job_title: values.job_title || null,
-        status: values.status,
-      });
+      const saved = await save.mutateAsync(toRequest(values));
       toast.success("Contact saved.");
       onSaved?.(saved);
       onClose();

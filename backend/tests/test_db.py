@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
@@ -11,7 +12,7 @@ from accountable.crm.tables import contacts, organizations
 
 def count(table) -> int:
     with db.reading() as conn:
-        return conn.scalar(select(func.count()).select_from(table))
+        return conn.execute(select(func.count()).select_from(table)).scalar_one()
 
 
 def add_one(conn) -> None:
@@ -19,7 +20,7 @@ def add_one(conn) -> None:
 
 
 @pytest.fixture
-def no_database(tmp_path, monkeypatch) -> Path:
+def no_database(tmp_path, monkeypatch) -> Generator[Path]:
     path = tmp_path / "nested" / "folder" / "accountable.db"
     monkeypatch.setenv("ACCOUNTABLE_DB", str(path))
     db.dispose()
@@ -36,6 +37,7 @@ def test_foreign_keys_are_on_for_every_connection(database):
     try:
         for connection in connections:
             raw = connection.connection.driver_connection
+            assert raw is not None
             assert raw.getconfig(sqlite3.SQLITE_DBCONFIG_ENABLE_FKEY) is True
     finally:
         for connection in connections:

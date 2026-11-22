@@ -21,6 +21,25 @@ const schema = z.object({
 
 type Values = z.infer<typeof schema>;
 
+function defaultValues(record?: Organization, defaultName?: string): Values {
+  return {
+    name: record?.name ?? defaultName ?? "",
+    website: record?.website ?? "",
+    industry: record?.industry ?? "",
+    notes: record?.notes ?? "",
+  };
+}
+
+// Blank text is sent as null, so a cleared field is stored as empty.
+function toRequest(values: Values) {
+  return {
+    name: values.name,
+    website: values.website || null,
+    industry: values.industry || null,
+    notes: values.notes || null,
+  };
+}
+
 type Props = {
   record?: Organization;
   defaultName?: string;
@@ -38,22 +57,12 @@ export function OrganizationForm({ record, defaultName, onClose, onSaved }: Prop
     formState: { errors },
   } = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      name: record?.name ?? defaultName ?? "",
-      website: record?.website ?? "",
-      industry: record?.industry ?? "",
-      notes: record?.notes ?? "",
-    },
+    defaultValues: defaultValues(record, defaultName),
   });
 
   async function submit(values: Values) {
     try {
-      const saved = await save.mutateAsync({
-        name: values.name,
-        website: values.website || null,
-        industry: values.industry || null,
-        notes: values.notes || null,
-      });
+      const saved = await save.mutateAsync(toRequest(values));
       toast.success("Organization saved.");
       onSaved?.(saved);
       onClose();

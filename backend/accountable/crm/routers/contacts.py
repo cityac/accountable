@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import delete, func, insert, select, update
 
@@ -35,30 +37,30 @@ def _check_organization(conn, organization_id: int) -> None:
         raise schemas.FieldError({"organization_id": schemas.FIELD_MESSAGES["organization_id"]})
 
 
-@router.get("")
-def list_contacts() -> list[schemas.ContactRow]:
+@router.get("", response_model=list[schemas.ContactRow])
+def list_contacts() -> list[dict[str, Any]]:
     with db.reading() as conn:
         last = timeline.last_by_contact(conn)
         rows = conn.execute(_with_organization.order_by(contacts.c.name)).all()
     return [{**row._mapping, "last_activity": last.get(row.id)} for row in rows]
 
 
-@router.post("", status_code=201)
-def add_contact(body: schemas.ContactCreate) -> schemas.ContactDetail:
+@router.post("", status_code=201, response_model=schemas.ContactDetail)
+def add_contact(body: schemas.ContactCreate) -> dict[str, Any]:
     with db.writing() as conn:
         _check_organization(conn, body.organization_id)
-        new_id = conn.execute(insert(contacts).values(**body.model_dump())).inserted_primary_key[0]
+        new_id = db.inserted_id(conn.execute(insert(contacts).values(**body.model_dump())))
         return _detail(conn, new_id)
 
 
-@router.get("/{contact_id}")
-def get_contact(contact_id: schemas.PathId) -> schemas.ContactDetail:
+@router.get("/{contact_id}", response_model=schemas.ContactDetail)
+def get_contact(contact_id: schemas.PathId) -> dict[str, Any]:
     with db.reading() as conn:
         return _detail(conn, contact_id)
 
 
-@router.patch("/{contact_id}")
-def edit_contact(contact_id: schemas.PathId, body: schemas.ContactUpdate) -> schemas.ContactDetail:
+@router.patch("/{contact_id}", response_model=schemas.ContactDetail)
+def edit_contact(contact_id: schemas.PathId, body: schemas.ContactUpdate) -> dict[str, Any]:
     fields = body.model_dump(exclude_unset=True)
     with db.writing() as conn:
         current = _get(conn, contact_id)
@@ -80,8 +82,8 @@ def delete_contact(contact_id: schemas.PathId) -> None:
         conn.execute(delete(contacts).where(contacts.c.id == contact_id))
 
 
-@router.get("/{contact_id}/delete-impact")
-def contact_impact(contact_id: schemas.PathId) -> schemas.ContactImpact:
+@router.get("/{contact_id}/delete-impact", response_model=schemas.ContactImpact)
+def contact_impact(contact_id: schemas.PathId) -> dict[str, Any]:
     with db.reading() as conn:
         _get(conn, contact_id)
         return {
@@ -92,12 +94,12 @@ def contact_impact(contact_id: schemas.PathId) -> schemas.ContactImpact:
         }
 
 
-@router.get("/{contact_id}/timeline")
+@router.get("/{contact_id}/timeline", response_model=schemas.Timeline)
 def contact_timeline(
     contact_id: schemas.PathId,
     limit: int = Query(timeline.DEFAULT_LIMIT, ge=1, le=500),
     offset: int = Query(0, ge=0, le=schemas.MAX_ID),
-) -> schemas.Timeline:
+) -> dict[str, Any]:
     with db.reading() as conn:
         _get(conn, contact_id)
         return timeline.for_contact(conn, contact_id, limit, offset)

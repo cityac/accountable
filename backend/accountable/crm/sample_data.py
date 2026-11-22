@@ -8,9 +8,11 @@ addresses use the reserved .example domain.
 import calendar
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
+from typing import Any
 
 from sqlalchemy import Connection, insert
 
+from accountable import db
 from accountable.crm import rules
 from accountable.crm.tables import activities, contacts, organizations
 
@@ -71,17 +73,71 @@ MAIN_CONTACTS = [
 ]
 
 OTHER_FIRST_NAMES = [
-    "Alice", "Andre", "Beth", "Caleb", "Chloe", "Diego", "Dina", "Eli", "Emma", "Felix", "Gina", "Hugo", "Iris",
-    "Ivan", "Jade", "Kofi", "Lara", "Liam", "Mina", "Milo", "Nadia", "Omar", "Paula", "Quinn", "Rosa", "Rohan",
+    "Alice",
+    "Andre",
+    "Beth",
+    "Caleb",
+    "Chloe",
+    "Diego",
+    "Dina",
+    "Eli",
+    "Emma",
+    "Felix",
+    "Gina",
+    "Hugo",
+    "Iris",
+    "Ivan",
+    "Jade",
+    "Kofi",
+    "Lara",
+    "Liam",
+    "Mina",
+    "Milo",
+    "Nadia",
+    "Omar",
+    "Paula",
+    "Quinn",
+    "Rosa",
+    "Rohan",
 ]
 OTHER_LAST_NAMES = [
-    "Abbott", "Barros", "Chen", "Dalton", "Eriksen", "Farrow", "Garcia", "Hayes", "Ito", "Jensen", "Keane", "Lowe",
-    "Mensah", "Nolan", "Ortiz", "Park", "Quigley", "Rossi", "Singh", "Thorne", "Usman", "Varga", "Wells", "Yates",
+    "Abbott",
+    "Barros",
+    "Chen",
+    "Dalton",
+    "Eriksen",
+    "Farrow",
+    "Garcia",
+    "Hayes",
+    "Ito",
+    "Jensen",
+    "Keane",
+    "Lowe",
+    "Mensah",
+    "Nolan",
+    "Ortiz",
+    "Park",
+    "Quigley",
+    "Rossi",
+    "Singh",
+    "Thorne",
+    "Usman",
+    "Varga",
+    "Wells",
+    "Yates",
     "Zhou",
 ]
 OTHER_JOB_TITLES = [
-    "Office Manager", "Finance Manager", "IT Manager", "Marketing Lead", "Operations Lead", "Account Manager",
-    "Project Manager", "Procurement Lead", "Sales Manager", "Administrator",
+    "Office Manager",
+    "Finance Manager",
+    "IT Manager",
+    "Marketing Lead",
+    "Operations Lead",
+    "Account Manager",
+    "Project Manager",
+    "Procurement Lead",
+    "Sales Manager",
+    "Administrator",
 ]
 OTHER_STATUSES = ["lead", "lead", "qualified", "customer", "lead", "customer", "qualified"]
 OTHER_CONTACTS = 51
@@ -169,8 +225,17 @@ LOSSES = [
 ]
 
 CLOSED_NAMES = [
-    "Onboarding package", "Service contract", "Renewal", "Reporting add-on", "Pilot program", "Team training",
-    "Upgrade", "Site survey", "Integration", "Support plan", "Data clean-up",
+    "Onboarding package",
+    "Service contract",
+    "Renewal",
+    "Reporting add-on",
+    "Pilot program",
+    "Team training",
+    "Upgrade",
+    "Site survey",
+    "Integration",
+    "Support plan",
+    "Data clean-up",
 ]
 CLOSED_CLIENTS = [
     ("Harbor & Pine", "Sam Carter"),
@@ -210,19 +275,34 @@ FOLLOW_UPS = [
 ]
 
 CALLS = [
-    "Called about contract terms", "Left a message about the site visit", "Talked through the rollout plan",
-    "Checked in on the budget", "Walked through the pricing", "Call with the project lead",
-    "Discussed the start date", "Went over the scope on a call",
+    "Called about contract terms",
+    "Left a message about the site visit",
+    "Talked through the rollout plan",
+    "Checked in on the budget",
+    "Walked through the pricing",
+    "Call with the project lead",
+    "Discussed the start date",
+    "Went over the scope on a call",
 ]
 EMAILS = [
-    "Sent updated pricing", "Sent the proposal", "Shared two customer references", "Emailed the contract draft",
-    "Answered their security questions", "Sent a summary of the meeting", "Sent the onboarding checklist",
+    "Sent updated pricing",
+    "Sent the proposal",
+    "Shared two customer references",
+    "Emailed the contract draft",
+    "Answered their security questions",
+    "Sent a summary of the meeting",
+    "Sent the onboarding checklist",
     "Confirmed the meeting time",
 ]
 NOTES = [
-    "Budget confirmed for next quarter", "Asked for two more references", "Decision expected after the board meeting",
-    "Comparing us with one other supplier", "Prefers email to phone calls", "New finance lead starts next month",
-    "Wants a phased rollout", "Renewal date is in their contract",
+    "Budget confirmed for next quarter",
+    "Asked for two more references",
+    "Decision expected after the board meeting",
+    "Comparing us with one other supplier",
+    "Prefers email to phone calls",
+    "New finance lead starts next month",
+    "Wants a phased rollout",
+    "Renewal date is in their contract",
 ]
 ACTIVITIES_PER_DEAL = 3
 CONTACTS_WITH_ACTIVITY = 44
@@ -266,7 +346,9 @@ def _open_walks(today: date) -> list[Walk]:
         # Added bottom of the column first, because each goes in at the top.
         for number, (name, organization, contact, value, due) in enumerate(reversed(rows)):
             close_date = today - timedelta(days=due) if isinstance(due, int) else add_months(today, *due)
-            walks.append(Walk(name, organization, contact, value, close_date, path_to(stage), today - timedelta(1 + number)))
+            walks.append(
+                Walk(name, organization, contact, value, close_date, path_to(stage), today - timedelta(1 + number))
+            )
     return walks
 
 
@@ -289,8 +371,7 @@ def _lost_walks(today: date) -> list[Walk]:
     walks = []
     for number, (value, months_back, day, reached) in reversed(list(enumerate(LOSSES))):
         close_date = add_months(today, -months_back, day)
-        if close_date > today:
-            close_date = today
+        close_date = min(close_date, today)
         organization, contact = CLOSED_CLIENTS[(number * 2 + 5) % len(CLOSED_CLIENTS)]
         name = CLOSED_NAMES[(number * 3 + 1) % len(CLOSED_NAMES)]
         walks.append(Walk(name, organization, contact, value, close_date, [*path_to(reached), "lost"], close_date))
@@ -301,16 +382,18 @@ def _add_people(conn: Connection, today: date) -> tuple[dict[str, int], dict[str
     start = moment(today - timedelta(days=400), 1)
     org_ids = {}
     for name, slug, industry, notes in ORGANIZATIONS:
-        org_ids[name] = conn.execute(
-            insert(organizations).values(
-                name=name,
-                website=f"https://www.{slug}.example",
-                industry=industry,
-                notes=notes,
-                created_at=start,
-                updated_at=start,
+        org_ids[name] = db.inserted_id(
+            conn.execute(
+                insert(organizations).values(
+                    name=name,
+                    website=f"https://www.{slug}.example",
+                    industry=industry,
+                    notes=notes,
+                    created_at=start,
+                    updated_at=start,
+                )
             )
-        ).inserted_primary_key[0]
+        )
 
     slugs = {name: slug for name, slug, _industry, _notes in ORGANIZATIONS}
     people = list(MAIN_CONTACTS)
@@ -331,18 +414,20 @@ def _add_people(conn: Connection, today: date) -> tuple[dict[str, int], dict[str
     all_ids = []
     for number, (name, organization, job_title, status) in enumerate(people):
         address = name.lower().replace(" ", ".").replace("á", "a").replace("é", "e")
-        contact_id = conn.execute(
-            insert(contacts).values(
-                name=name,
-                email=f"{address}@{slugs[organization]}.example",
-                phone=f"(212) 555-01{number % 100:02d}",
-                job_title=job_title,
-                organization_id=org_ids[organization],
-                status=status,
-                created_at=start,
-                updated_at=start,
+        contact_id = db.inserted_id(
+            conn.execute(
+                insert(contacts).values(
+                    name=name,
+                    email=f"{address}@{slugs[organization]}.example",
+                    phone=f"(212) 555-01{number % 100:02d}",
+                    job_title=job_title,
+                    organization_id=org_ids[organization],
+                    status=status,
+                    created_at=start,
+                    updated_at=start,
+                )
             )
-        ).inserted_primary_key[0]
+        )
         contact_ids[name] = contact_id
         all_ids.append(contact_id)
     return org_ids, contact_ids, all_ids
@@ -382,7 +467,7 @@ def fill(conn: Connection, today: date) -> None:
     org_ids, contact_ids, all_contacts = _add_people(conn, today)
 
     deal_ids: dict[str, int] = {}
-    rows = []
+    rows: list[dict[str, Any]] = []
     number = 0
     walks = [*_open_walks(today), *_won_walks(today), *_lost_walks(today)]
     for deal_number, walk in enumerate(walks):
