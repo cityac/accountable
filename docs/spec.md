@@ -1,30 +1,59 @@
-# Spec: the Accountable MVP
+# Spec: Accountable
 
-`docs/intent.md` says what we're building and why. This spec turns it into requirements (Part 1) and a design (Part 2). If the two disagree, the intent wins and this file gets corrected. The chosen design is `docs/mockups/4-chosen-design.html`, described under [Chosen design](#chosen-design). It sets the layout and look, and this file matches it.
+This spec describes Accountable as it stands today: what it does (Part 1) and how it's built and how it looks (Part 2). It is the authority on the product. Code that does something this file doesn't describe, or doesn't do what it says, is wrong, and either the code or this file gets corrected.
 
-## Concerns
+Each change to the product has its own folder, `docs/changes/<branch name>/`, holding that change's `intent.md` and `plan.md`. A change updates this spec as part of its work, so once it's merged this file describes the product with the change in it. The folders are a record of how the product got here, and aren't a reference for how it works now.
 
-These are the concerns raised when this spec was written, with what the project owner decided on each.
+The chosen design is `docs/mockups/4-chosen-design.html`, described under [Chosen design](#chosen-design). It sets the layout and look, and this file matches it.
+
+## Problem
+
+A small business keeps track of its customers and sales in spreadsheets, inboxes and people's heads. Nobody can see at a glance which companies we deal with, who our contacts are, what's in the sales pipeline, what happened last with a customer or what needs doing next.
+
+## Product
+
+Accountable is a business management system: a sales CRM that will grow into a full Business OS, including ERP. Today it's a complete sales CRM for one person, running on their own computer. Think of it as a private Salesforce that does the everyday CRM essentials really well. It should feel sharp, modern and professional, and be a pleasure to use.
+
+It has five sections, Dashboard, Organizations, Contacts, Deals and Pipeline, over four kinds of record: organizations, contacts, deals and activities. It comes with realistic sample data, so every screen looks alive the first time it starts.
+
+**Who uses it:** one salesperson, on their own computer every day with their own real data. They start from the sample data to look around, then clear it and type in their own records. The rest of the sales team joins later. No other systems are involved.
+
+## Not in Accountable yet
+
+- Sign-in, user accounts, several people sharing the same data, or a record of who did what
+- Making it available beyond the computer it runs on
+- A dark mode or a layout for phones
+- AI features
+- Email, calendar or phone integrations
+- Currencies other than US dollars
+- Reports beyond the dashboard
+- Tags or custom fields
+- Changing the pipeline stages
+- Importing or exporting data
+
+## Decisions
+
+These are the decisions the project owner has made on points that needed one.
 
 ### Decided
 
 1. **Six stages, five brand colors: the stages keep the brand's order.** New is Sea Green, Qualified is Marigold, Proposal is Coral and Negotiation is Cerulean. Lost takes the fifth color, Raspberry, and Won is Midnight. The colors can't carry meaning alone: the chart validator puts Marigold and Coral just under its line for telling colors apart (14.5 against 15), and Sea Green, Marigold and Coral are all below 3:1 on white. So every stage color in this spec has the stage's name beside it.
 2. **Small chips use slightly darker Raspberry and Cerulean.** White text on the brand colors is 3.62:1 and 3.96:1, below the usual 4.5:1 minimum for small text. Small chips use `#D23E62` and `#107FA4` instead, which reach 4.5:1 and look almost the same. This is an agreed exception to the brand, for small chips only. See [the color tokens](#color-tokens). The pipeline band, the funnel, the pipeline's column headers and the delete buttons keep the exact brand colors, so small white text on their Cerulean and Raspberry fills stays at 3.96:1 and 3.62:1.
-3. **No undo on the pipeline.** It isn't needed for the MVP. Dropping a card on Won replaces the expected close date and any hand-set probability, and makes the main contact a customer. Dragging it back restores none of these, but a message after the drop says exactly what changed.
-4. **No backups or export in the MVP.** Everything lives in `data/accountable.db`, so a reset, `git clean -x`, deleting the folder or losing the laptop loses it all. The two wipe commands show what will be lost and require typing `yes`, and `docs/STATUS.md` explains that copying the file is the backup.
-5. **Windows and Linux stay untested for now.** The intent requires the same command on Mac, Linux and Windows. The build avoids anything platform-specific, but it will only run on a Mac, so the other two are unproven until someone tries them.
+3. **No undo on the pipeline.** It isn't needed for now. Dropping a card on Won replaces the expected close date and any hand-set probability, and makes the main contact a customer. Dragging it back restores none of these, but a message after the drop says exactly what changed.
+4. **No backups or export yet.** Everything lives in `data/accountable.db`, so a reset, `git clean -x`, deleting the folder or losing the laptop loses it all. The two wipe commands show what will be lost and require typing `yes`, and `docs/STATUS.md` explains that copying the file is the backup.
+5. **Windows and Linux stay untested for now.** The same command is meant to work on Mac, Linux and Windows (C1). The build avoids anything platform-specific, but it has only been run on a Mac, so the other two are unproven until someone tries them.
 6. **Chrome only for now.** It's the one supported and tested browser. Safari and Firefox may work, but nobody will have checked.
-7. **The project owner is the tester for criterion 8.** The end-to-end tests prove each of the five answers is within two clicks of the dashboard, and the project owner does the no-instructions check by hand.
+7. **The project owner checks H9 by hand.** The end-to-end tests prove each of the five answers is within two clicks of the dashboard, and the project owner checks that someone new, with only the sample data and no instructions, can find them.
 
 ### Worth knowing
 
 8. **The fonts come from npm packages, not Google Fonts.** The brand skill says Google Fonts. The packages hold the same fonts, so they look the same and work offline.
 9. **The stable drag-and-drop package has gone quiet.** `@dnd-kit/core` was last released in December 2024, though it's still by far the most used, at about 40 million downloads a week. Its successor, `@dnd-kit/react`, is active but still at 0.5.3. This spec uses the stable package, whose React range covers React 19.
-10. **The Won and Lost columns only get longer.** One could reach hundreds of cards. Every deal stays on the board as the intent asks, each column scrolls by itself, and a test drags cards at the 500-deal limit.
+10. **The Won and Lost columns only get longer.** One could reach hundreds of cards. Every deal stays on the board, each column scrolls by itself, and a test drags cards at the 500-deal limit.
 
-### Calls made where the intent was silent
+### Smaller calls
 
-Say if you want any of these changed.
+Smaller points decided while building. Say if you want any of these changed.
 
 - Automatic stage-change entries can't be edited or deleted. They go only when their deal is deleted.
 - A reopened deal keeps its close date, so it shows as late from the next day until someone sets a new date.
@@ -43,8 +72,8 @@ Say if you want any of these changed.
 - Overdue follow-ups list oldest first.
 - An activity's contact or deal can't be changed once it's logged, so the activity form needs no contact-or-deal picker.
 - Sample Won and Lost columns start newest first.
-- `npm test` runs the end-to-end tests on several workers, in place of the plan's one, chosen from the machine's cores and memory. This one is the project owner's own call, so the suite can be run often.
-- At 500 deals, a task of up to about 250ms while dragging counts as smooth, in place of the plan's 100ms, so that cards can slide apart during a drag. This one is the project owner's own call.
+- `npm test` runs the end-to-end tests on several workers, chosen from the machine's cores and memory, so the suite can be run often. This one is the project owner's own call.
+- At 500 deals, a task of up to about 250ms while dragging counts as smooth, so that cards can slide apart during a drag. This one is the project owner's own call.
 - The dashboard's won figures link to Deals showing Won deals only. Deals has no stage filter of its own, so this one only shows after following those links, with a button to show every stage.
 - Moving between open stages in the deal form leaves the close date alone, including one that's just been typed. A trip through Won or Lost and back restores it.
 - Leaving the When box untouched keeps an activity's exact time. The box only holds minutes.
@@ -53,7 +82,7 @@ Say if you want any of these changed.
 
 # Part 1: Requirements
 
-The "Not in the MVP" list in `docs/intent.md` applies throughout.
+The [Not in Accountable yet](#not-in-accountable-yet) list applies throughout.
 
 ## Terms
 
@@ -202,7 +231,7 @@ The "Not in the MVP" list in `docs/intent.md` applies throughout.
 - **H6.** **Follow-ups** lists every follow-up not yet done, overdue first, then upcoming by date. Each shows what it's about, its date, a link to its contact or deal, and a tick box to mark it done. Overdue ones carry an Overdue chip. The panel's heading shows how many are overdue and upcoming, and the panel scrolls if the list is long.
 - **H7.** **Recent activity** lists the 10 newest activities and stage changes, leaving out anything dated in the future. Each links to its contact or deal.
 - **H8.** Every chart and list has a designed empty state, and nothing divides by zero.
-- **H9.** Each of the five questions from the intent's Problem section can be answered within two clicks of the dashboard.
+- **H9.** Each of the five questions from the [Problem](#problem) section can be answered within two clicks of the dashboard.
 
 ## Sample data
 
@@ -555,7 +584,7 @@ Stage-change entries use Cerulean, which marks them as information.
 
 ### Type
 
-The fonts are bundled through Fontsource, as the intent requires.
+The fonts are bundled through Fontsource, so the app needs no internet connection to show them (C2).
 
 | Use | Font | Size and line height | Weight |
 |---|---|---|---|
@@ -624,7 +653,7 @@ The project owner compared three mockups and chose:
 - **Mockup 3, Deal wall:** the style of the pipeline board.
 - **A new top-down sales funnel** in place of Mockup 2's funnel bars, in the style common in sales CRMs.
 
-`docs/mockups/4-chosen-design.html` brings these together, with `4-chosen-design-dashboard.png` and `4-chosen-design-pipeline.png` beside it. Build to it, and compare the finished app with it in the Test stage. Mockups 1 to 3 stay in the folder as a record of the options, and aren't a reference for the build.
+`docs/mockups/4-chosen-design.html` brings these together, with `4-chosen-design-dashboard.png` and `4-chosen-design-pipeline.png` beside it. The app matches it, and any change to the look is compared with it. Mockups 1 to 3 stay in the folder as a record of the options, and aren't a reference for the app.
 
 The figures in the mockups come from `docs/mockups/shared.js` and are examples. The app's sample data follows M1 to M5.
 
@@ -691,21 +720,21 @@ There's no sign-in, so the app relies on being reachable only from this computer
 - A stress run fills a test database to the limits in Q1 and checks the timings. It runs last and alone, because timings need a quiet machine.
 - Tests reach the app at 127.0.0.1, so a slow lookup of the name `localhost` can't stall them, and Chrome runs with `--disable-gpu`, because browsers compiling shaders side by side can hang on macOS.
 
-| Criterion | Requirements | End-to-end file |
+| Area | Requirements | Where it's proved |
 |---|---|---|
-| 1. Start and land on the dashboard | C1, C2, N1 to N5, M1 to M5 | `e2e/start.spec.ts` |
-| 2. Tables, delete, reset, empty | T1 to T9, F1 to F9, D1 to D3, C3 to C6 | `e2e/records.spec.ts`, `e2e/data.spec.ts` |
-| 3. Filter and record pages | T6, R1 to R5 | `e2e/records.spec.ts` |
-| 4. Pipeline | P1 to P9, S1 to S6 | `e2e/pipeline.spec.ts` |
-| 5. Activities and timelines | A1 to A5, S2, H6 | `e2e/activities.spec.ts` |
-| 6. Dashboard figures | H1 to H8, S1 | `e2e/dashboard.spec.ts` |
-| 7. Look and brand | Visual design | Checked by eye against the chosen mockup |
-| 8. Five answers, two clicks | H9 | `e2e/problem.spec.ts`, then see concern 7 |
-| 9. Real use | Everything | By hand, below |
+| Start and land on the dashboard | C1, C2, N1 to N5, M1 to M5 | `e2e/start.spec.ts` |
+| Tables, delete, reset, empty | T1 to T9, F1 to F9, D1 to D3, C3 to C6 | `e2e/records.spec.ts`, `e2e/data.spec.ts` |
+| Filter and record pages | T6, R1 to R5 | `e2e/records.spec.ts` |
+| Pipeline | P1 to P9, S1 to S6 | `e2e/pipeline.spec.ts` |
+| Activities and timelines | A1 to A5, S2, H6 | `e2e/activities.spec.ts` |
+| Dashboard figures | H1 to H8, S1 | `e2e/dashboard.spec.ts` |
+| Look and brand | Visual design | Checked by eye against the chosen mockup |
+| Five answers, two clicks | H9 | `e2e/problem.spec.ts`, then see decision 7 |
+| Real use | Everything | By hand, below |
 | Layout, console, keyboard, Chrome | N3, Q2, Q3, Q4 | `e2e/quality.spec.ts` |
 | Speed at the limits | Q1 | `e2e/stress.spec.ts` |
 | Keeping data on this computer | Security | `e2e/security.spec.ts`, `backend/tests/test_every_route.py`, `backend/tests/test_security.py` |
 | When things go wrong | N4, N6, F10, F11, D1, P4 | `e2e/failures.spec.ts`, `frontend/src/crm/forms/forms.test.tsx`, `frontend/src/crm/queries.test.tsx` |
 | Layout rules | Layout rules | `backend/tests/test_layout.py`, `frontend/src/layout.test.ts` |
 
-**By hand (criterion 9):** the agent uses every section and action in a real browser at 1440 by 900 and 1280 by 720, the way a salesperson would. That includes an emptied database, a restart, and starting the app with the network off. It looks at each screen, compares it with the chosen mockup and fixes what it finds. Then you use it yourself and have the final say. Passing tests is necessary, but it isn't enough.
+**By hand:** before a change is called done, the coding agent uses every section and action it touches in a real browser at 1440 by 900 and 1280 by 720, the way a salesperson would. That includes an emptied database, a restart, and starting the app with the network off. It looks at each screen, compares it with the chosen mockup, checks the browser's console has no errors, and fixes what it finds. Then the project owner uses it and has the final say, including on how it looks. Passing tests is necessary, but it isn't enough.

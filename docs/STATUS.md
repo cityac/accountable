@@ -1,4 +1,4 @@
-The MVP is built and its automated tests pass. `docs/intent.md` says what it is, `docs/spec.md` has the requirements and design, `docs/TECH_STACK.md` has the stack, and `docs/plan.md` is the build plan that was followed. Stage 6 is complete.
+The MVP is built and its automated tests pass. `docs/spec.md` describes the product, `docs/TECH_STACK.md` has the stack, and `docs/changes/mvp/` holds the MVP's intent and the build plan that was followed. Stage 6 is complete.
 
 ## Build progress
 
@@ -10,6 +10,7 @@ The MVP is built and its automated tests pass. `docs/intent.md` says what it is,
 - **Phase 6, pipeline:** done. The first board used `@dnd-kit/sortable` and had a 241ms task at the limits, so it now has one draggable and a droppable per column, and slides the cards apart itself. The longest task while dragging into a 240-card column is about 70ms to 180ms, against the project owner's limit of about 250ms. `@dnd-kit/sortable` is gone and the spec says why.
 - **Phase 7, dashboard:** done. It was checked against the mockup at both sizes with sample data, an empty database and data at the limits.
 - **Phase 8, finish the build:** done.
+- **Docs ready for future changes:** done. `docs/spec.md` now describes the whole product and is the authority on it, and each change gets its own `docs/changes/<branch name>/` folder. The MVP's intent and plan moved to `docs/changes/mvp/`.
 
 ## Compared with the chosen mockup
 
